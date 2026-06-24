@@ -1,0 +1,10 @@
+node_modules/
+dist/
+client/dist/
+data/wahapedia/
+*.log
+.DS_Store
+
+# NOTE: data/stats.sqlite is intentionally committed so Railway has the stat DB
+# at runtime without re-ingesting. Rebuild it with `npm run ingest` (needs the
+# Wahapedia CSVs in data/wahapedia/, which stay ignored).

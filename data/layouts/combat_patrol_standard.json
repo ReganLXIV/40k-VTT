@@ -1,0 +1,25 @@
+{
+  "id": "combat_patrol_standard",
+  "name": "Combat Patrol — Standard",
+  "boardSize": "combat_patrol",
+  "width": 30,
+  "height": 22,
+  "terrain": [
+    { "id": "t1", "shape": "rect", "geom": [4, 3, 6, 6], "label": "Ruin", "obscuring": true },
+    { "id": "t2", "shape": "rect", "geom": [20, 13, 6, 6], "label": "Ruin", "obscuring": true },
+    { "id": "t3", "shape": "triangle", "geom": [12, 8, 18, 8, 15, 14], "label": "Ruin", "obscuring": true },
+    { "id": "t4", "shape": "rect", "geom": [20, 3, 6, 6], "label": "Ruin", "obscuring": true },
+    { "id": "t5", "shape": "rect", "geom": [4, 13, 6, 6], "label": "Ruin", "obscuring": true }
+  ],
+  "objectives": [
+    { "id": "obj_home_p1", "cx": 15, "cy": 18, "type": "home", "radiusInch": 3, "controlledBy": null },
+    { "id": "obj_home_p2", "cx": 15, "cy": 4, "type": "home", "radiusInch": 3, "controlledBy": null },
+    { "id": "obj_exp_l", "cx": 7, "cy": 11, "type": "expansion", "radiusInch": 3, "controlledBy": null },
+    { "id": "obj_exp_r", "cx": 23, "cy": 11, "type": "expansion", "radiusInch": 3, "controlledBy": null },
+    { "id": "obj_central", "cx": 15, "cy": 11, "type": "central", "radiusInch": 3, "controlledBy": null }
+  ],
+  "deploymentZones": [
+    { "player": "player1", "polygon": [0, 15, 30, 15, 30, 22, 0, 22] },
+    { "player": "player2", "polygon": [0, 0, 30, 0, 30, 7, 0, 7] }
+  ]
+}

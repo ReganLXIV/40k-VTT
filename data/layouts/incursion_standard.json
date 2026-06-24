@@ -1,0 +1,25 @@
+{
+  "id": "incursion_standard",
+  "name": "Incursion — Standard",
+  "boardSize": "incursion",
+  "width": 44,
+  "height": 30,
+  "terrain": [
+    { "id": "t1", "shape": "rect", "geom": [6, 4, 7, 8], "label": "Ruin", "obscuring": true },
+    { "id": "t2", "shape": "rect", "geom": [31, 18, 7, 8], "label": "Ruin", "obscuring": true },
+    { "id": "t3", "shape": "triangle", "geom": [18, 11, 26, 11, 22, 19], "label": "Ruin", "obscuring": true },
+    { "id": "t4", "shape": "rect", "geom": [31, 4, 7, 8], "label": "Ruin", "obscuring": true },
+    { "id": "t5", "shape": "rect", "geom": [6, 18, 7, 8], "label": "Ruin", "obscuring": true }
+  ],
+  "objectives": [
+    { "id": "obj_home_p1", "cx": 22, "cy": 25, "type": "home", "radiusInch": 3, "controlledBy": null },
+    { "id": "obj_home_p2", "cx": 22, "cy": 5, "type": "home", "radiusInch": 3, "controlledBy": null },
+    { "id": "obj_exp_l", "cx": 10, "cy": 15, "type": "expansion", "radiusInch": 3, "controlledBy": null },
+    { "id": "obj_exp_r", "cx": 34, "cy": 15, "type": "expansion", "radiusInch": 3, "controlledBy": null },
+    { "id": "obj_central", "cx": 22, "cy": 15, "type": "central", "radiusInch": 3, "controlledBy": null }
+  ],
+  "deploymentZones": [
+    { "player": "player1", "polygon": [0, 21, 44, 21, 44, 30, 0, 30] },
+    { "player": "player2", "polygon": [0, 0, 44, 0, 44, 9, 0, 9] }
+  ]
+}
