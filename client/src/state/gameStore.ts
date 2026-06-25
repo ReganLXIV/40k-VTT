@@ -45,8 +45,7 @@ export const useGame = create<GameStore>((set, get) => {
   socket.on('connect', () => set({ connected: true }));
   socket.on('disconnect', () => set({ connected: false }));
 
-  const onState = (state: RoomState) => {
-    set({ state });
+  const pruneSelections = (state: RoomState) => {
     // drop selections for tokens that vanished
     const ids = new Set(state.tokens.map((t) => t.id));
     const sel = get().selectedTokenId;
@@ -54,8 +53,23 @@ export const useGame = create<GameStore>((set, get) => {
     const multi = get().selectedIds;
     if (multi.some((id) => !ids.has(id))) set({ selectedIds: multi.filter((id) => ids.has(id)) });
   };
-  socket.on('state:full', onState);
-  socket.on('state:patch', onState);
+  // Full state (incl. layout geometry) — on join/create ack and layout changes.
+  const onFull = (state: RoomState) => {
+    set({ state });
+    pruneSelections(state);
+  };
+  // Patch (routine updates) — layout geometry is stripped to save bandwidth, so
+  // reuse the cached full layout (same id) rather than the empty stub.
+  const onPatch = (incoming: RoomState) => {
+    const prev = get().state;
+    const layout =
+      prev?.layout && prev.layout.id === incoming.layout.id ? prev.layout : incoming.layout;
+    const state = { ...incoming, layout };
+    set({ state });
+    pruneSelections(state);
+  };
+  socket.on('state:full', onFull);
+  socket.on('state:patch', onPatch);
   socket.on('ping:show', (p) => {
     livePings.push(p);
     if (livePings.length > 12) livePings.shift();

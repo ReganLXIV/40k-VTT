@@ -2,6 +2,7 @@ import type { Server, Socket } from 'socket.io';
 import { nanoid } from 'nanoid';
 import type {
   ClientToServer,
+  Layout,
   PlayerSlot,
   ServerToClient,
 } from '../shared/types.js';
@@ -24,7 +25,29 @@ interface SocketData {
 type TServer = Server<ClientToServer, ServerToClient, {}, SocketData>;
 type TSocket = Socket<ClientToServer, ServerToClient, {}, SocketData>;
 
+// The layout's static geometry (terrain/objectives/zones/details) is large and
+// never changes during play, so routine updates omit it — clients keep their
+// cached copy and merge. Only an actual layout change resends the full geometry.
+function lightLayout(l: Layout): Layout {
+  return {
+    id: l.id,
+    name: l.name,
+    boardSize: l.boardSize,
+    width: l.width,
+    height: l.height,
+    terrain: [],
+    objectives: [],
+    deploymentZones: [],
+  };
+}
+
 function broadcastFull(io: TServer, code: string) {
+  const state = getRoom(code);
+  if (state) io.to(code).emit('state:patch', { ...state, layout: lightLayout(state.layout) });
+}
+
+// Use when the layout itself changed: sends the full state incl. geometry.
+function broadcastLayout(io: TServer, code: string) {
   const state = getRoom(code);
   if (state) io.to(code).emit('state:full', state);
 }
@@ -87,7 +110,7 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     const state = requireRoom();
     if (!state) return;
     setLayout(state, layout);
-    broadcastFull(io, state.code);
+    broadcastLayout(io, state.code); // layout changed → resend full geometry
   });
 
   socket.on('token:spawn', ({ fromUnitId, asModels }) => {
