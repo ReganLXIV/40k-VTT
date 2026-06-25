@@ -45,25 +45,59 @@ export default function BoardCanvas() {
   const baseRef = useRef<ViewParams | null>(null);
   const panDragRef = useRef<{ lastX: number; lastY: number } | null>(null);
 
-  // Delete / Backspace removes every selected token (marquee group, or the single
-  // selected one). Ignored while typing in an input.
+  // Keyboard shortcuts: Delete removes selection; arrows nudge the selection
+  // (Shift = fine 0.5"); V/S select, R ruler, P ping, G grid. Ignored while typing.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       const el = document.activeElement;
-      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
-      const ids =
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) return;
+      const gs = useGame.getState();
+      const selIds =
         selectedIdsRef.current.size > 0
           ? [...selectedIdsRef.current]
-          : useGame.getState().selectedTokenId
-            ? [useGame.getState().selectedTokenId as string]
+          : gs.selectedTokenId
+            ? [gs.selectedTokenId as string]
             : [];
-      if (!ids.length) return;
-      e.preventDefault();
-      for (const id of ids) intents.remove(id);
-      selectedIdsRef.current = new Set();
-      useGame.getState().setSelectedIds([]);
-      setSelectedToken(null);
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!selIds.length) return;
+        e.preventDefault();
+        for (const id of selIds) intents.remove(id);
+        selectedIdsRef.current = new Set();
+        gs.setSelectedIds([]);
+        setSelectedToken(null);
+        return;
+      }
+
+      if (e.key.startsWith('Arrow')) {
+        const st = gs.state;
+        if (!selIds.length || !st) return;
+        e.preventDefault();
+        const step = e.shiftKey ? 0.5 : 1;
+        const sign = gs.flip ? -1 : 1; // player2 view is rotated 180°
+        let dx = 0;
+        let dy = 0;
+        if (e.key === 'ArrowUp') dy = -step;
+        else if (e.key === 'ArrowDown') dy = step;
+        else if (e.key === 'ArrowLeft') dx = -step;
+        else if (e.key === 'ArrowRight') dx = step;
+        dx *= sign;
+        dy *= sign;
+        for (const id of selIds) {
+          const t = st.tokens.find((tk) => tk.id === id);
+          if (!t) continue;
+          const p = clampToBoard({ x: t.x + dx, y: t.y + dy }, st.layout);
+          intents.move(id, p.x, p.y);
+        }
+        return;
+      }
+
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === 'v' || k === 's') gs.setTool('select');
+      else if (k === 'r') gs.setTool('ruler');
+      else if (k === 'p') gs.setTool('ping');
+      else if (k === 'g') gs.toggleGrid();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

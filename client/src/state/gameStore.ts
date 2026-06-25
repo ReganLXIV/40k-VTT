@@ -144,6 +144,9 @@ export const intents = {
   adjustCp: (player: PlayerSlot, delta: number) => socket.emit('cp:adjust', { player, delta }),
   adjustScore: (player: PlayerSlot, delta: number) =>
     socket.emit('score:adjust', { player, delta }),
+  autoObjectives: () => socket.emit('objectives:auto'),
+  scorePrimary: () => socket.emit('score:primary'),
+  rollOff: () => socket.emit('game:rollOff'),
   ping: (x: number, y: number) => socket.emit('ping:add', { x, y }),
   deployAll: () => socket.emit('army:deployAll'),
   clearMyTokens: () => socket.emit('tokens:clearMine'),

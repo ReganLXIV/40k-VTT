@@ -59,6 +59,15 @@ export default function GameTrack() {
         <button onClick={() => intents.nextTurn()} title="Hand turn to the other player">
           End turn
         </button>
+        <button
+          onClick={() => intents.rollOff()}
+          title="Roll off (2d6 each) for who takes the first turn — sets the active player"
+        >
+          Roll-off
+        </button>
+      </div>
+      <div className="small muted" style={{ marginTop: 4 }}>
+        +1 CP is granted automatically at the start of each command phase.
       </div>
 
       {/* CP + VP */}

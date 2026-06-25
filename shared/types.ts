@@ -304,6 +304,9 @@ export interface ClientToServer {
   'phase:set': (data: { phase: GamePhase }) => void;
   'cp:adjust': (data: { player: PlayerSlot; delta: number }) => void;
   'score:adjust': (data: { player: PlayerSlot; delta: number }) => void;
+  'objectives:auto': () => void; // recompute objective control from model OC
+  'score:primary': () => void; // auto-control, then score primary VP for the active player
+  'game:rollOff': () => void; // roll off for who takes the first turn
   'ping:add': (data: { x: number; y: number }) => void;
   'army:deployAll': () => void;
   'tokens:clearMine': () => void;

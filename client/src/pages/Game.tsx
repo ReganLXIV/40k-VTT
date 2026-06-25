@@ -280,6 +280,20 @@ export default function Game() {
 
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Objectives</h3>
+          <div className="row small" style={{ gap: 6, marginBottom: 6 }}>
+            <button
+              onClick={() => intents.autoObjectives()}
+              title="Set control of every objective from model OC (a model counts if its base touches the objective ring)"
+            >
+              Auto-control
+            </button>
+            <button
+              onClick={() => intents.scorePrimary()}
+              title="Recompute control, then add primary VP for objectives the active player holds (up to 3 × 5 VP)"
+            >
+              Score primary ({state.activePlayer === 'player1' ? 'P1' : 'P2'})
+            </button>
+          </div>
           {state.layout.objectives.map((o) => (
             <div className="row small" key={o.id} style={{ padding: '3px 0' }}>
               <span>{o.type}</span>

@@ -254,4 +254,42 @@ export function deployAll(state: RoomState, owner: PlayerSlot, makeId: () => str
   });
 }
 
+// Objective Control of a single token: the unit's per-model OC, 0 if battle-shocked.
+function tokenOC(state: RoomState, t: Token): number {
+  if (t.status.includes('Battle-shocked')) return 0;
+  const roster = state.players[t.owner]?.roster;
+  const unit = roster?.units.find((u) => u.datasheetId === t.datasheetId);
+  const oc = unit?.profile?.oc;
+  return typeof oc === 'number' ? oc : Number(oc) || 0;
+}
+
+// Recompute who controls each objective from model OC. A model counts toward an
+// objective if its BASE touches the objective's range (it doesn't have to be
+// wholly inside): distance(centre) <= ring radius + base radius. Battle-shocked
+// and destroyed models contribute nothing. Ties (incl. 0–0) keep the current
+// controller, matching the tabletop rule.
+export function computeObjectiveControl(
+  state: RoomState
+): Record<string, PlayerSlot | null> {
+  const result: Record<string, PlayerSlot | null> = { ...state.objectives };
+  for (const o of state.layout.objectives) {
+    let p1 = 0;
+    let p2 = 0;
+    for (const t of state.tokens) {
+      if (t.status.includes('Destroyed')) continue;
+      const oc = tokenOC(state, t);
+      if (oc <= 0) continue;
+      const baseR = t.baseMm / 25.4 / 2;
+      const d = Math.hypot(o.cx - t.x, o.cy - t.y);
+      if (d > o.radiusInch + baseR) continue; // base must reach the objective ring
+      if (t.owner === 'player1') p1 += oc;
+      else p2 += oc;
+    }
+    if (p1 > p2) result[o.id] = 'player1';
+    else if (p2 > p1) result[o.id] = 'player2';
+    // tie → leave control unchanged
+  }
+  return result;
+}
+
 export { type HydratedRoster };

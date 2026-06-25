@@ -8,6 +8,7 @@ import type {
 } from '../shared/types.js';
 import { GAME_PHASES } from '../shared/types.js';
 import {
+  computeObjectiveControl,
   createRoom,
   deployAll,
   getRoom,
@@ -242,6 +243,7 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     state.activePlayer = state.activePlayer === 'player1' ? 'player2' : 'player1';
     if (state.activePlayer === 'player1') state.turn += 1;
     state.phase = 'Command';
+    grantCommandPhaseCP(state); // +1 CP at the start of the active player's command phase
     broadcastFull(io, state.code);
   });
 
@@ -264,6 +266,7 @@ export function registerHandlers(io: TServer, socket: TSocket) {
       state.phase = 'Command';
       state.activePlayer = state.activePlayer === 'player1' ? 'player2' : 'player1';
       if (state.activePlayer === 'player1') state.turn += 1;
+      grantCommandPhaseCP(state); // +1 CP at the start of the active player's command phase
     }
     broadcastFull(io, state.code);
   });
@@ -312,7 +315,55 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     broadcastFull(io, state.code);
   });
 
+  socket.on('objectives:auto', () => {
+    const state = requireRoom();
+    if (!state) return;
+    state.objectives = computeObjectiveControl(state);
+    broadcastFull(io, state.code);
+  });
+
+  socket.on('score:primary', () => {
+    const state = requireRoom();
+    const slot = socket.data.slot;
+    if (!state || !slot || slot === 'spectator') return;
+    state.objectives = computeObjectiveControl(state);
+    const held = Object.values(state.objectives).filter((c) => c === state.activePlayer).length;
+    const vp = Math.min(3, held) * 5; // primary: up to 3 objectives × 5 VP
+    state.score[state.activePlayer] = (state.score[state.activePlayer] ?? 0) + vp;
+    broadcastFull(io, state.code);
+  });
+
+  socket.on('game:rollOff', () => {
+    const state = requireRoom();
+    if (!state) return;
+    let p1 = 0;
+    let p2 = 0;
+    do {
+      p1 = 1 + Math.floor(Math.random() * 6);
+      p2 = 1 + Math.floor(Math.random() * 6);
+    } while (p1 === p2);
+    const winner: PlayerSlot = p1 > p2 ? 'player1' : 'player2';
+    state.activePlayer = winner;
+    state.dice.unshift({
+      id: nanoid(6),
+      owner: winner,
+      label: `First-turn roll-off — P1:${p1} P2:${p2} → ${winner === 'player1' ? 'P1' : 'P2'} first`,
+      n: 2,
+      sides: 6,
+      rolls: [p1, p2],
+      total: p1 + p2,
+      at: Date.now(),
+    });
+    state.dice = state.dice.slice(0, 30);
+    broadcastFull(io, state.code);
+  });
+
   socket.on('disconnect', () => handleDisconnect(io, socket));
+}
+
+// +1 CP at the start of the active player's Command phase (10th/11th edition).
+function grantCommandPhaseCP(state: { commandPoints: Record<PlayerSlot, number>; activePlayer: PlayerSlot }) {
+  state.commandPoints[state.activePlayer] = (state.commandPoints[state.activePlayer] ?? 0) + 1;
 }
 
 function handleDisconnect(io: TServer, socket: TSocket) {
