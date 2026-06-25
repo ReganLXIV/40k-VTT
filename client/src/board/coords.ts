@@ -65,6 +65,17 @@ export function mmToInches(mm: number): number {
   return mm / 25.4;
 }
 
+// Draw a full circle, but never pass a negative/NaN radius to ctx.arc (which
+// throws "The radius provided is negative" and would kill the render loop).
+export function fullArc(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number
+): void {
+  if (Number.isFinite(r) && r > 0) ctx.arc(x, y, r, 0, Math.PI * 2);
+}
+
 export function dist(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }

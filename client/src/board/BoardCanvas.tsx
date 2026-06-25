@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Point, Token } from '@shared/types';
 import { useGame, intents, livePings } from '../state/gameStore';
-import { computeView, pxToInches, inchesToPx, type ViewParams } from './coords';
+import { computeView, pxToInches, inchesToPx, fullArc, type ViewParams } from './coords';
 import { renderBoard } from './render';
 import { clampToBoard, objectiveAt, tokenAt } from './interactions';
 
@@ -557,7 +557,7 @@ function drawSelection(
       const c = inchesToPx({ x: t.x, y: t.y }, v);
       const r = Math.max(8, (t.baseMm / 25.4 / 2) * v.scale) + 3;
       ctx.beginPath();
-      ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+      fullArc(ctx, c.x, c.y, r);
       ctx.strokeStyle = '#ffd84e';
       ctx.lineWidth = 2.5;
       ctx.stroke();
@@ -620,7 +620,7 @@ function drawPings(ctx: CanvasRenderingContext2D, v: ViewParams) {
     for (const k of [0, 0.33]) {
       const t = (age + k) % 1;
       ctx.beginPath();
-      ctx.arc(c.x, c.y, baseR + t * 34, 0, Math.PI * 2);
+      fullArc(ctx, c.x, c.y, baseR + t * 34);
       ctx.strokeStyle = color;
       ctx.globalAlpha = Math.max(0, 1 - t) * (1 - age * 0.3);
       ctx.lineWidth = 3;
@@ -629,7 +629,7 @@ function drawPings(ctx: CanvasRenderingContext2D, v: ViewParams) {
     // solid centre dot
     ctx.globalAlpha = Math.max(0, 1 - age);
     ctx.beginPath();
-    ctx.arc(c.x, c.y, baseR, 0, Math.PI * 2);
+    fullArc(ctx, c.x, c.y, baseR);
     ctx.fillStyle = color;
     ctx.fill();
     ctx.globalAlpha = 1;

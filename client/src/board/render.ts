@@ -3,6 +3,7 @@ import {
   type ViewParams,
   inchesToPx,
   mmToInches,
+  fullArc,
 } from './coords';
 
 const P1 = '#4ea1ff';
@@ -133,7 +134,7 @@ export function renderBoard(input: RenderInput) {
     } else if (t.shape === 'circle') {
       const [cx, cy, r] = t.geom;
       const c = inchesToPx({ x: cx, y: cy }, v);
-      ctx.arc(c.x, c.y, r * v.scale, 0, Math.PI * 2);
+      fullArc(ctx, c.x, c.y, r * v.scale);
     }
     ctx.fill();
     ctx.stroke();
@@ -166,7 +167,7 @@ export function renderBoard(input: RenderInput) {
     const controller = state.objectives[o.id] ?? null;
     // control ring
     ctx.beginPath();
-    ctx.arc(c.x, c.y, ring, 0, Math.PI * 2);
+    fullArc(ctx, c.x, c.y, ring);
     ctx.strokeStyle = controller ? ownerColor(controller) : 'rgba(255,255,255,0.25)';
     ctx.lineWidth = 2;
     ctx.stroke();
@@ -176,7 +177,7 @@ export function renderBoard(input: RenderInput) {
     }
     // marker
     ctx.beginPath();
-    ctx.arc(c.x, c.y, Math.max(6, v.scale * 0.7), 0, Math.PI * 2);
+    fullArc(ctx, c.x, c.y, Math.max(6, v.scale * 0.7));
     ctx.fillStyle = OBJ_COLORS[o.type];
     ctx.fill();
     ctx.strokeStyle = '#0008';
@@ -252,7 +253,7 @@ function drawRangeRing(
   const rad = inches * scale;
   if (!Number.isFinite(rad) || rad <= 0 || rad > 1e5) return; // skip pathological radii
   ctx.beginPath();
-  ctx.arc(c.x, c.y, rad, 0, Math.PI * 2);
+  fullArc(ctx, c.x, c.y, rad);
   ctx.strokeStyle = color;
   ctx.lineWidth = 1.5;
   ctx.setLineDash([6, 4]);
@@ -310,7 +311,7 @@ function drawToken(
   } else {
     r = Math.max(7, (mmToInches(t.baseMm) / 2) * v.scale);
     ctx.beginPath();
-    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    fullArc(ctx, 0, 0, r);
     ctx.fill();
     ctx.stroke();
   }
@@ -387,7 +388,7 @@ function drawRuler(
   ctx.textAlign = 'left';
   for (const p of [pa, pb]) {
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    fullArc(ctx, p.x, p.y, 3);
     ctx.fillStyle = color;
     ctx.fill();
   }
