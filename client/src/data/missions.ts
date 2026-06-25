@@ -12,24 +12,19 @@ export interface MissionCard {
   summary: string; // our own brief paraphrase of what the card asks you to do
 }
 
-// ---- Primary missions (one is in play for the whole game; shared selection) ----
+// ---- Primary missions = the 5 Force Dispositions (11th edition). Each player
+// scores their own disposition's primary; the matchup is named "yours vs theirs". ----
 export const PRIMARY_MISSIONS: MissionCard[] = [
   { id: 'take_and_hold', name: 'Take and Hold', vp: 'Up to 45',
-    summary: 'Hold objective markers. Score each of your command phases (and at the end) for the objectives you control.' },
+    summary: 'Steady board control — score for the objectives you hold across the table each command phase.' },
   { id: 'purge_the_foe', name: 'Purge the Foe', vp: 'Up to 45',
-    summary: 'Score for objectives you control, with extra value for objectives outside your own half.' },
-  { id: 'scorched_earth', name: 'Scorched Earth', vp: 'Up to 45',
-    summary: 'Hold objectives; later you can perform an action to “burn” certain objectives for a one-off bonus, removing them.' },
-  { id: 'the_ritual', name: 'The Ritual', vp: 'Up to 45',
-    summary: 'Extra objective markers appear over the early rounds; score for holding the active set each round.' },
-  { id: 'linchpin', name: 'Linchpin', vp: 'Up to 45',
-    summary: 'Hold objectives, with the central objective worth more than the others.' },
-  { id: 'supply_drop', name: 'Supply Drop', vp: 'Up to 45',
-    summary: 'Only a rotating subset of objectives is active each round — hold the active ones to score.' },
-  { id: 'terraform', name: 'Terraform', vp: 'Up to 45',
-    summary: 'Hold objectives and perform actions to “terraform” them for escalating value as the game goes on.' },
-  { id: 'burden_of_trust', name: 'Burden of Trust', vp: 'Up to 45',
-    summary: 'Hold objectives including a nominated “trusted” objective that must stay under your control to score fully.' },
+    summary: 'Aggression — score for holding objectives and for destroying enemy units, rewarding lethal play.' },
+  { id: 'reconnaissance', name: 'Reconnaissance', vp: 'Up to 45',
+    summary: 'Espionage — score by pushing units into deep/contested ground and performing recon actions there.' },
+  { id: 'priority_assets', name: 'Priority Assets', vp: 'Up to 45',
+    summary: 'Key objectives — score for holding priority objectives, with which ones matter shifting during the game.' },
+  { id: 'disruption', name: 'Disruption', vp: 'Up to 45',
+    summary: "Operate in the enemy half — score by sabotaging their plans and holding forward objectives in their territory." },
 ];
 
 // ---- Secondary objectives: Tactical deck (draw from this each turn) ----

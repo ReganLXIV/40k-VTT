@@ -236,6 +236,21 @@ function resolveDetachmentName(factionName: string, detachment: string): string 
   return best;
 }
 
+// All detachment names available to a faction (for the manual multi-select).
+export function listDetachments(factionName: string): string[] {
+  if (!factionName) return [];
+  const rows = getDb()
+    .prepare(
+      `SELECT DISTINCT detachment FROM (
+         SELECT detachment, faction_name FROM stratagem
+         UNION SELECT detachment, faction_name FROM detachment_ability
+         UNION SELECT detachment, faction_name FROM enhancement
+       ) WHERE lower(faction_name) = lower(?) AND detachment <> '' ORDER BY detachment`
+    )
+    .all(factionName) as any[];
+  return rows.map((r) => r.detachment as string);
+}
+
 export function getDetachmentInfo(
   factionName: string,
   detachment: string

@@ -93,10 +93,7 @@ export default function Game() {
         <span className="small muted">
           Round {state.turn} · {state.phase} · {state.activePlayer === 'player1' ? 'P1' : 'P2'}
         </span>
-        <button
-          onClick={() => setShowDetachment(true)}
-          disabled={!(myRoster?.detachments?.length || myRoster?.detachment)}
-        >
+        <button onClick={() => setShowDetachment(true)} disabled={!myRoster?.faction}>
           Detachments
         </button>
         <button onClick={() => setShowMissions(true)}>Missions</button>

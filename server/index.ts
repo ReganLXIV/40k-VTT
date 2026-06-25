@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseArmy } from './armyParser.js';
 import { hydrateRoster } from './hydrate.js';
-import { getDatasheet, allDatasheetIndex, dbExists, getDetachmentInfo } from './db.js';
+import { getDatasheet, allDatasheetIndex, dbExists, getDetachmentInfo, listDetachments } from './db.js';
 import { loadLayouts } from './layouts.js';
 import { registerHandlers } from './socketHandlers.js';
 import { reapEmptyRooms } from './rooms.js';
@@ -76,6 +76,15 @@ app.get('/api/datasheets', (req, res) => {
 
 app.get('/api/layouts', (_req, res) => {
   res.json(loadLayouts());
+});
+
+app.get('/api/detachments', (req, res) => {
+  if (!dbExists()) {
+    res.status(503).json({ error: 'Stat database not built.' });
+    return;
+  }
+  const faction = (req.query.faction as string) || '';
+  res.json(listDetachments(faction));
 });
 
 app.get('/api/detachment', (req, res) => {
