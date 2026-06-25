@@ -8,6 +8,7 @@ import type {
   Token,
 } from '../shared/types.js';
 import { getDefaultLayout, getLayoutById } from './layouts.js';
+import { baseTouchesTerrain, objectiveFootprint } from '../shared/objectives.js';
 
 // Ambiguity-free alphabet (no 0/O/1/I/L).
 const makeCode = customAlphabet('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 5);
@@ -263,16 +264,17 @@ function tokenOC(state: RoomState, t: Token): number {
   return typeof oc === 'number' ? oc : Number(oc) || 0;
 }
 
-// Recompute who controls each objective from model OC. A model counts toward an
-// objective if its BASE touches the objective's range (it doesn't have to be
-// wholly inside): distance(centre) <= ring radius + base radius. Battle-shocked
-// and destroyed models contribute nothing. Ties (incl. 0–0) keep the current
-// controller, matching the tabletop rule.
+// Recompute who controls each objective from model OC. The objective is the whole
+// terrain footprint it sits on: a model counts if its BASE TOUCHES that footprint
+// (it doesn't have to be wholly inside). If an objective isn't on a footprint we
+// fall back to its marker range. Battle-shocked/destroyed models contribute
+// nothing. Ties (incl. 0–0) keep the current controller.
 export function computeObjectiveControl(
   state: RoomState
 ): Record<string, PlayerSlot | null> {
   const result: Record<string, PlayerSlot | null> = { ...state.objectives };
   for (const o of state.layout.objectives) {
+    const foot = objectiveFootprint(o, state.layout);
     let p1 = 0;
     let p2 = 0;
     for (const t of state.tokens) {
@@ -280,8 +282,10 @@ export function computeObjectiveControl(
       const oc = tokenOC(state, t);
       if (oc <= 0) continue;
       const baseR = t.baseMm / 25.4 / 2;
-      const d = Math.hypot(o.cx - t.x, o.cy - t.y);
-      if (d > o.radiusInch + baseR) continue; // base must reach the objective ring
+      const touches = foot
+        ? baseTouchesTerrain(t.x, t.y, baseR, foot)
+        : Math.hypot(o.cx - t.x, o.cy - t.y) <= o.radiusInch + baseR;
+      if (!touches) continue;
       if (t.owner === 'player1') p1 += oc;
       else p2 += oc;
     }

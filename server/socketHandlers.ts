@@ -119,6 +119,7 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     const slot = socket.data.slot;
     if (!state || !slot || slot === 'spectator') return;
     spawnTokensFromUnit(state, slot, fromUnitId, !!asModels, () => nanoid(8));
+    state.objectives = computeObjectiveControl(state);
     broadcastFull(io, state.code);
   });
 
@@ -129,6 +130,7 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     if (t) {
       t.x = x;
       t.y = y;
+      state.objectives = computeObjectiveControl(state); // live recolour from OC
       broadcastFull(io, state.code);
     }
   });
@@ -144,6 +146,7 @@ export function registerHandlers(io: TServer, socket: TSocket) {
       const hasTag = t.status.includes('Destroyed');
       if (dead && !hasTag) t.status = [...t.status, 'Destroyed'];
       else if (!dead && hasTag) t.status = t.status.filter((s) => s !== 'Destroyed');
+      state.objectives = computeObjectiveControl(state); // OC may change (battle-shock/destroyed/base)
       broadcastFull(io, state.code);
     }
   });
@@ -166,6 +169,7 @@ export function registerHandlers(io: TServer, socket: TSocket) {
         status: src.status.filter((s) => s !== 'Destroyed'),
       });
     }
+    state.objectives = computeObjectiveControl(state);
     broadcastFull(io, state.code);
   });
 
@@ -173,6 +177,7 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     const state = requireRoom();
     if (!state) return;
     state.tokens = state.tokens.filter((tk) => tk.id !== id);
+    state.objectives = computeObjectiveControl(state);
     broadcastFull(io, state.code);
   });
 
@@ -288,6 +293,7 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     const slot = socket.data.slot;
     if (!state || !slot || slot === 'spectator') return;
     deployAll(state, slot, () => nanoid(8));
+    state.objectives = computeObjectiveControl(state);
     broadcastFull(io, state.code);
   });
 
@@ -296,6 +302,7 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     const slot = socket.data.slot;
     if (!state || !slot || slot === 'spectator') return;
     state.tokens = state.tokens.filter((t) => t.owner !== slot);
+    state.objectives = computeObjectiveControl(state);
     broadcastFull(io, state.code);
   });
 

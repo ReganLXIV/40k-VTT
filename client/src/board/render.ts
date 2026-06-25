@@ -1,4 +1,5 @@
 import type { PlayerSlot, RoomState, Token } from '@shared/types';
+import { objectiveFootprint } from '@shared/objectives';
 import {
   type ViewParams,
   inchesToPx,
@@ -109,11 +110,21 @@ export function renderBoard(input: RenderInput) {
     ctx.setLineDash([]);
   }
 
+  // Which terrain footprints are objectives, and who controls each — the whole
+  // footprint is the objective zone and is tinted with the controller's colour.
+  const footControl: Record<string, PlayerSlot> = {};
+  for (const o of layout.objectives) {
+    const foot = objectiveFootprint(o, layout);
+    const ctrl = state.objectives[o.id] ?? null;
+    if (foot && ctrl) footControl[foot.id] = ctrl;
+  }
+
   // terrain
   for (const t of layout.terrain) {
-    ctx.fillStyle = 'rgba(120,130,140,0.18)';
-    ctx.strokeStyle = 'rgba(200,210,220,0.55)';
-    ctx.lineWidth = 1.5;
+    const ctrl = footControl[t.id];
+    ctx.fillStyle = ctrl ? hexA(ownerColor(ctrl), 0.34) : 'rgba(120,130,140,0.18)';
+    ctx.strokeStyle = ctrl ? ownerColor(ctrl) : 'rgba(200,210,220,0.55)';
+    ctx.lineWidth = ctrl ? 2.5 : 1.5;
     ctx.beginPath();
     if (t.shape === 'rect') {
       const [x, y, w, h] = t.geom;
@@ -160,22 +171,12 @@ export function renderBoard(input: RenderInput) {
     for (const d of layout.details) if (d.kind === 'wall') fillPoly(d.geom, 'rgba(214,168,74,0.92)');
   }
 
-  // objectives
+  // objectives: the controlled footprint is already tinted above. Only draw a
+  // small marker for objectives that aren't sitting on a terrain footprint.
   for (const o of layout.objectives) {
+    if (objectiveFootprint(o, layout)) continue;
     const c = inchesToPx({ x: o.cx, y: o.cy }, v);
-    const ring = o.radiusInch * v.scale;
     const controller = state.objectives[o.id] ?? null;
-    // control ring — boldly filled + coloured by the controlling player
-    ctx.beginPath();
-    fullArc(ctx, c.x, c.y, ring);
-    if (controller) {
-      ctx.fillStyle = hexA(ownerColor(controller), 0.28);
-      ctx.fill();
-    }
-    ctx.strokeStyle = controller ? ownerColor(controller) : 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = controller ? 3 : 2;
-    ctx.stroke();
-    // centre marker — controller colour when held, else the objective-type colour
     ctx.beginPath();
     fullArc(ctx, c.x, c.y, Math.max(6, v.scale * 0.7));
     ctx.fillStyle = controller ? ownerColor(controller) : OBJ_COLORS[o.type];
