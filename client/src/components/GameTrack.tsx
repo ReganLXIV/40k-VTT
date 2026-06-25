@@ -66,9 +66,6 @@ export default function GameTrack() {
           Roll-off
         </button>
       </div>
-      <div className="small muted" style={{ marginTop: 4 }}>
-        +1 CP is granted automatically at the start of each command phase.
-      </div>
 
       {/* CP + VP */}
       <div className="col" style={{ marginTop: 10, gap: 8 }}>

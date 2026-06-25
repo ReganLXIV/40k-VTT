@@ -243,7 +243,6 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     state.activePlayer = state.activePlayer === 'player1' ? 'player2' : 'player1';
     if (state.activePlayer === 'player1') state.turn += 1;
     state.phase = 'Command';
-    grantCommandPhaseCP(state); // +1 CP at the start of the active player's command phase
     broadcastFull(io, state.code);
   });
 
@@ -266,7 +265,6 @@ export function registerHandlers(io: TServer, socket: TSocket) {
       state.phase = 'Command';
       state.activePlayer = state.activePlayer === 'player1' ? 'player2' : 'player1';
       if (state.activePlayer === 'player1') state.turn += 1;
-      grantCommandPhaseCP(state); // +1 CP at the start of the active player's command phase
     }
     broadcastFull(io, state.code);
   });
@@ -322,14 +320,10 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     broadcastFull(io, state.code);
   });
 
-  socket.on('score:primary', () => {
+  socket.on('mission:setPrimary', ({ id }) => {
     const state = requireRoom();
-    const slot = socket.data.slot;
-    if (!state || !slot || slot === 'spectator') return;
-    state.objectives = computeObjectiveControl(state);
-    const held = Object.values(state.objectives).filter((c) => c === state.activePlayer).length;
-    const vp = Math.min(3, held) * 5; // primary: up to 3 objectives × 5 VP
-    state.score[state.activePlayer] = (state.score[state.activePlayer] ?? 0) + vp;
+    if (!state) return;
+    state.primaryMissionId = id || undefined;
     broadcastFull(io, state.code);
   });
 
@@ -359,11 +353,6 @@ export function registerHandlers(io: TServer, socket: TSocket) {
   });
 
   socket.on('disconnect', () => handleDisconnect(io, socket));
-}
-
-// +1 CP at the start of the active player's Command phase (10th/11th edition).
-function grantCommandPhaseCP(state: { commandPoints: Record<PlayerSlot, number>; activePlayer: PlayerSlot }) {
-  state.commandPoints[state.activePlayer] = (state.commandPoints[state.activePlayer] ?? 0) + 1;
 }
 
 function handleDisconnect(io: TServer, socket: TSocket) {

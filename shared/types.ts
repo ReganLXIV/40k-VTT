@@ -257,6 +257,7 @@ export interface RoomState {
   notes: Record<PlayerSlot, string>; // private scratchpad per player
   commandPoints: Record<PlayerSlot, number>;
   score: Record<PlayerSlot, number>;
+  primaryMissionId?: string; // shared primary mission card id
 }
 
 export type GamePhase = 'Command' | 'Movement' | 'Shooting' | 'Charge' | 'Fight';
@@ -304,9 +305,9 @@ export interface ClientToServer {
   'phase:set': (data: { phase: GamePhase }) => void;
   'cp:adjust': (data: { player: PlayerSlot; delta: number }) => void;
   'score:adjust': (data: { player: PlayerSlot; delta: number }) => void;
-  'objectives:auto': () => void; // recompute objective control from model OC
-  'score:primary': () => void; // auto-control, then score primary VP for the active player
+  'objectives:auto': () => void; // recompute objective control from model OC (colours only)
   'game:rollOff': () => void; // roll off for who takes the first turn
+  'mission:setPrimary': (data: { id: string }) => void; // shared primary mission selection
   'ping:add': (data: { x: number; y: number }) => void;
   'army:deployAll': () => void;
   'tokens:clearMine': () => void;

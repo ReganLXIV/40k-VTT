@@ -8,6 +8,9 @@ import type {
   RoomState,
 } from '@shared/types';
 import { socket } from '../socket';
+import { SECONDARY_CARDS } from '../data/missions';
+
+const SECONDARY_CARD_IDS = SECONDARY_CARDS.map((c) => c.id);
 
 export type Tool = 'select' | 'ruler' | 'ping' | 'pan';
 
@@ -30,6 +33,11 @@ interface GameStore {
   rangeRingInch: number; // custom range ring (e.g. charge 12")
   renderError: string | null; // last caught board-render error (for on-screen diagnostics)
 
+  // private Tactical secondary deck (local to this browser, persisted)
+  secDeck: string[];
+  secHand: string[];
+  secDiscard: string[];
+
   setMyRoster: (r: HydratedRoster | null) => void;
   setSelectedToken: (id: string | null) => void;
   setSelectedIds: (ids: string[]) => void;
@@ -38,7 +46,39 @@ interface GameStore {
   toggleRanges: () => void;
   setRangeRing: (n: number) => void;
 
+  secShuffle: () => void; // (re)build a fresh shuffled deck
+  secDraw: () => void; // draw the top card into the hand
+  secDiscardCard: (id: string) => void; // hand -> discard (scored or discarded)
+
   flip: boolean; // does this client render flipped (player2)?
+}
+
+// --- Tactical secondary deck persistence (private, per-browser) ---
+const SEC_KEY = 'vtt-secondaries';
+type SecState = { secDeck: string[]; secHand: string[]; secDiscard: string[] };
+function loadSec(): SecState {
+  try {
+    const s = JSON.parse(localStorage.getItem(SEC_KEY) || 'null');
+    if (s && Array.isArray(s.secDeck)) return s;
+  } catch {
+    /* ignore */
+  }
+  return { secDeck: [], secHand: [], secDiscard: [] };
+}
+function saveSec(s: SecState) {
+  try {
+    localStorage.setItem(SEC_KEY, JSON.stringify(s));
+  } catch {
+    /* ignore */
+  }
+}
+function shuffled<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 export const useGame = create<GameStore>((set, get) => {
@@ -88,6 +128,7 @@ export const useGame = create<GameStore>((set, get) => {
     showRanges: false,
     rangeRingInch: 12,
     renderError: null,
+    ...loadSec(),
     flip: false,
 
     setMyRoster: (r) => set({ myRoster: r }),
@@ -97,6 +138,38 @@ export const useGame = create<GameStore>((set, get) => {
     toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
     toggleRanges: () => set((s) => ({ showRanges: !s.showRanges })),
     setRangeRing: (n) => set({ rangeRingInch: Math.max(1, Math.min(60, n)) }),
+
+    secShuffle: () =>
+      set(() => {
+        const next = { secDeck: shuffled(SECONDARY_CARD_IDS), secHand: [], secDiscard: [] };
+        saveSec(next);
+        return next;
+      }),
+    secDraw: () =>
+      set((s) => {
+        let deck = s.secDeck;
+        let discard = s.secDiscard;
+        if (deck.length === 0 && discard.length > 0) {
+          deck = shuffled(discard); // reshuffle the discard pile when the deck runs out
+          discard = [];
+        }
+        if (deck.length === 0) return s;
+        const [top, ...rest] = deck;
+        const next = { secDeck: rest, secHand: [...s.secHand, top], secDiscard: discard };
+        saveSec(next);
+        return next;
+      }),
+    secDiscardCard: (id) =>
+      set((s) => {
+        if (!s.secHand.includes(id)) return s;
+        const next = {
+          secDeck: s.secDeck,
+          secHand: s.secHand.filter((c) => c !== id),
+          secDiscard: [...s.secDiscard, id],
+        };
+        saveSec(next);
+        return next;
+      }),
   };
 });
 
@@ -145,8 +218,8 @@ export const intents = {
   adjustScore: (player: PlayerSlot, delta: number) =>
     socket.emit('score:adjust', { player, delta }),
   autoObjectives: () => socket.emit('objectives:auto'),
-  scorePrimary: () => socket.emit('score:primary'),
   rollOff: () => socket.emit('game:rollOff'),
+  setPrimaryMission: (id: string) => socket.emit('mission:setPrimary', { id }),
   ping: (x: number, y: number) => socket.emit('ping:add', { x, y }),
   deployAll: () => socket.emit('army:deployAll'),
   clearMyTokens: () => socket.emit('tokens:clearMine'),

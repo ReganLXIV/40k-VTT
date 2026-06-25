@@ -10,6 +10,7 @@ import RosterList from '../components/RosterList';
 import UnitCard from '../components/UnitCard';
 import ArmyImport from '../components/ArmyImport';
 import DetachmentPanel from '../components/DetachmentPanel';
+import MissionsPanel from '../components/MissionsPanel';
 
 export default function Game() {
   const state = useGame((s) => s.state)!;
@@ -26,6 +27,7 @@ export default function Game() {
   const selectedIds = useGame((s) => s.selectedIds);
   const [showImport, setShowImport] = useState(false);
   const [showDetachment, setShowDetachment] = useState(false);
+  const [showMissions, setShowMissions] = useState(false);
 
   const mySlot = slot === 'spectator' ? null : slot;
   const myRoster: HydratedRoster | undefined =
@@ -94,6 +96,7 @@ export default function Game() {
         <button onClick={() => setShowDetachment(true)} disabled={!myRoster?.detachment}>
           Detachment & Stratagems
         </button>
+        <button onClick={() => setShowMissions(true)}>Missions</button>
         <button className={`toolbtn ${tool === 'select' ? 'active' : ''}`} onClick={() => setTool('select')}>Select</button>
         <button className={`toolbtn ${tool === 'ruler' ? 'active' : ''}`} onClick={() => setTool('ruler')}>Ruler</button>
         <button className={`toolbtn ${tool === 'ping' ? 'active' : ''}`} onClick={() => setTool('ping')} title="Click the board to ping your opponent (or Alt+click any time)">Ping</button>
@@ -283,15 +286,9 @@ export default function Game() {
           <div className="row small" style={{ gap: 6, marginBottom: 6 }}>
             <button
               onClick={() => intents.autoObjectives()}
-              title="Set control of every objective from model OC (a model counts if its base touches the objective ring)"
+              title="Colour each objective by who holds it, from model OC (a model counts if its base touches the objective ring). Does not change scores."
             >
-              Auto-control
-            </button>
-            <button
-              onClick={() => intents.scorePrimary()}
-              title="Recompute control, then add primary VP for objectives the active player holds (up to 3 × 5 VP)"
-            >
-              Score primary ({state.activePlayer === 'player1' ? 'P1' : 'P2'})
+              Auto-colour control
             </button>
           </div>
           {state.layout.objectives.map((o) => (
@@ -326,6 +323,7 @@ export default function Game() {
           onClose={() => setShowDetachment(false)}
         />
       )}
+      {showMissions && <MissionsPanel onClose={() => setShowMissions(false)} />}
     </div>
   );
 }

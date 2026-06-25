@@ -165,23 +165,23 @@ export function renderBoard(input: RenderInput) {
     const c = inchesToPx({ x: o.cx, y: o.cy }, v);
     const ring = o.radiusInch * v.scale;
     const controller = state.objectives[o.id] ?? null;
-    // control ring
+    // control ring — boldly filled + coloured by the controlling player
     ctx.beginPath();
     fullArc(ctx, c.x, c.y, ring);
-    ctx.strokeStyle = controller ? ownerColor(controller) : 'rgba(255,255,255,0.25)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
     if (controller) {
-      ctx.fillStyle = hexA(ownerColor(controller), 0.12);
+      ctx.fillStyle = hexA(ownerColor(controller), 0.28);
       ctx.fill();
     }
-    // marker
+    ctx.strokeStyle = controller ? ownerColor(controller) : 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = controller ? 3 : 2;
+    ctx.stroke();
+    // centre marker — controller colour when held, else the objective-type colour
     ctx.beginPath();
     fullArc(ctx, c.x, c.y, Math.max(6, v.scale * 0.7));
-    ctx.fillStyle = OBJ_COLORS[o.type];
+    ctx.fillStyle = controller ? ownerColor(controller) : OBJ_COLORS[o.type];
     ctx.fill();
-    ctx.strokeStyle = '#0008';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#000a';
+    ctx.lineWidth = 2;
     ctx.stroke();
   }
 
