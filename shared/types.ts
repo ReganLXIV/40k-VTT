@@ -97,7 +97,8 @@ export interface RawUnit {
 export interface RawRoster {
   armyName?: string;
   faction?: string; // e.g. "Necrons"
-  detachment?: string;
+  detachment?: string; // primary detachment (back-compat / first entry)
+  detachments?: string[]; // 11th ed: an army may field multiple detachments
   declaredPoints?: number;
   units: RawUnit[];
 }
@@ -137,7 +138,8 @@ export interface HydratedUnit {
 export interface HydratedRoster {
   armyName?: string;
   faction?: string;
-  detachment?: string;
+  detachment?: string; // primary detachment (first entry)
+  detachments?: string[]; // 11th ed: all detachments fielded by this army
   declaredPoints?: number;
   units: HydratedUnit[];
   unmatchedCount: number;

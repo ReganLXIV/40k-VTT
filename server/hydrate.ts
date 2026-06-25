@@ -136,10 +136,19 @@ export function hydrateRoster(raw: RawRoster): HydratedRoster {
     hydrateUnit(u, raw.faction, factionIndex, globalIndex)
   );
 
+  // 11th ed allows multiple detachments. New Recruit currently exports only one,
+  // so default the array to that single detachment until the export format adds more.
+  const detachments = raw.detachments?.length
+    ? raw.detachments
+    : raw.detachment
+      ? [raw.detachment]
+      : [];
+
   return {
     armyName: raw.armyName,
     faction: raw.faction,
-    detachment: raw.detachment,
+    detachment: raw.detachment ?? detachments[0],
+    detachments,
     declaredPoints: raw.declaredPoints,
     units,
     unmatchedCount: units.filter((u) => u.datasheetId === null).length,

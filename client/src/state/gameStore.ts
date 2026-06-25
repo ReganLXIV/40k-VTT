@@ -33,10 +33,12 @@ interface GameStore {
   rangeRingInch: number; // custom range ring (e.g. charge 12")
   renderError: string | null; // last caught board-render error (for on-screen diagnostics)
 
-  // private Tactical secondary deck (local to this browser, persisted)
-  secDeck: string[];
-  secHand: string[];
-  secDiscard: string[];
+  // private secondary missions (local to this browser, persisted)
+  secMode: 'tactical' | 'fixed'; // 11th ed: choose Fixed or Tactical at game start
+  secDeck: string[]; // Tactical: draw pile
+  secHand: string[]; // Tactical: cards drawn this game, kept until scored/discarded
+  secDiscard: string[]; // Tactical: discard pile
+  secFixed: string[]; // Fixed: the (up to 2) chosen secondaries for the whole game
 
   setMyRoster: (r: HydratedRoster | null) => void;
   setSelectedToken: (id: string | null) => void;
@@ -46,24 +48,33 @@ interface GameStore {
   toggleRanges: () => void;
   setRangeRing: (n: number) => void;
 
-  secShuffle: () => void; // (re)build a fresh shuffled deck
+  setSecMode: (m: 'tactical' | 'fixed') => void;
+  secShuffle: () => void; // (re)build a fresh shuffled Tactical deck
   secDraw: () => void; // draw the top card into the hand
   secDiscardCard: (id: string) => void; // hand -> discard (scored or discarded)
+  secFixedToggle: (id: string) => void; // add/remove a card from the Fixed pair (max 2)
 
   flip: boolean; // does this client render flipped (player2)?
 }
 
 // --- Tactical secondary deck persistence (private, per-browser) ---
 const SEC_KEY = 'vtt-secondaries';
-type SecState = { secDeck: string[]; secHand: string[]; secDiscard: string[] };
+type SecState = {
+  secMode: 'tactical' | 'fixed';
+  secDeck: string[];
+  secHand: string[];
+  secDiscard: string[];
+  secFixed: string[];
+};
 function loadSec(): SecState {
+  const base: SecState = { secMode: 'tactical', secDeck: [], secHand: [], secDiscard: [], secFixed: [] };
   try {
     const s = JSON.parse(localStorage.getItem(SEC_KEY) || 'null');
-    if (s && Array.isArray(s.secDeck)) return s;
+    if (s && Array.isArray(s.secDeck)) return { ...base, ...s };
   } catch {
     /* ignore */
   }
-  return { secDeck: [], secHand: [], secDiscard: [] };
+  return base;
 }
 function saveSec(s: SecState) {
   try {
@@ -139,9 +150,21 @@ export const useGame = create<GameStore>((set, get) => {
     toggleRanges: () => set((s) => ({ showRanges: !s.showRanges })),
     setRangeRing: (n) => set({ rangeRingInch: Math.max(1, Math.min(60, n)) }),
 
+    setSecMode: (m) =>
+      set((s) => {
+        const next: SecState = { ...pickSec(s), secMode: m };
+        saveSec(next);
+        return next;
+      }),
     secShuffle: () =>
-      set(() => {
-        const next = { secDeck: shuffled(SECONDARY_CARD_IDS), secHand: [], secDiscard: [] };
+      set((s) => {
+        const next: SecState = {
+          secMode: s.secMode,
+          secDeck: shuffled(SECONDARY_CARD_IDS),
+          secHand: [],
+          secDiscard: [],
+          secFixed: s.secFixed,
+        };
         saveSec(next);
         return next;
       }),
@@ -155,23 +178,45 @@ export const useGame = create<GameStore>((set, get) => {
         }
         if (deck.length === 0) return s;
         const [top, ...rest] = deck;
-        const next = { secDeck: rest, secHand: [...s.secHand, top], secDiscard: discard };
+        const next: SecState = { ...pickSec(s), secDeck: rest, secHand: [...s.secHand, top], secDiscard: discard };
         saveSec(next);
         return next;
       }),
     secDiscardCard: (id) =>
       set((s) => {
         if (!s.secHand.includes(id)) return s;
-        const next = {
-          secDeck: s.secDeck,
+        const next: SecState = {
+          ...pickSec(s),
           secHand: s.secHand.filter((c) => c !== id),
           secDiscard: [...s.secDiscard, id],
         };
         saveSec(next);
         return next;
       }),
+    secFixedToggle: (id) =>
+      set((s) => {
+        const has = s.secFixed.includes(id);
+        const secFixed = has
+          ? s.secFixed.filter((c) => c !== id)
+          : s.secFixed.length >= 2
+            ? s.secFixed // Fixed allows a maximum of two
+            : [...s.secFixed, id];
+        const next: SecState = { ...pickSec(s), secFixed };
+        saveSec(next);
+        return next;
+      }),
   };
 });
+
+function pickSec(s: SecState): SecState {
+  return {
+    secMode: s.secMode,
+    secDeck: s.secDeck,
+    secHand: s.secHand,
+    secDiscard: s.secDiscard,
+    secFixed: s.secFixed,
+  };
+}
 
 export function setRoomJoin(
   code: string,

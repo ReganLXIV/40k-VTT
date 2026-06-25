@@ -1,4 +1,4 @@
-// Mission reference for the current (Pariah Nexus) matched-play deck.
+// Mission reference for the current (11th edition, Chapter Approved) matched-play deck.
 //
 // IMPORTANT: these are short, ORIGINAL functional reminders written for this app
 // — NOT reproductions of Games Workshop's printed card text or artwork. Card
@@ -14,21 +14,21 @@ export interface MissionCard {
 
 // ---- Primary missions (one is in play for the whole game; shared selection) ----
 export const PRIMARY_MISSIONS: MissionCard[] = [
-  { id: 'take_and_hold', name: 'Take and Hold', vp: 'Up to 50',
+  { id: 'take_and_hold', name: 'Take and Hold', vp: 'Up to 45',
     summary: 'Hold objective markers. Score each of your command phases (and at the end) for the objectives you control.' },
-  { id: 'purge_the_foe', name: 'Purge the Foe', vp: 'Up to 50',
+  { id: 'purge_the_foe', name: 'Purge the Foe', vp: 'Up to 45',
     summary: 'Score for objectives you control, with extra value for objectives outside your own half.' },
-  { id: 'scorched_earth', name: 'Scorched Earth', vp: 'Up to 50',
+  { id: 'scorched_earth', name: 'Scorched Earth', vp: 'Up to 45',
     summary: 'Hold objectives; later you can perform an action to “burn” certain objectives for a one-off bonus, removing them.' },
-  { id: 'the_ritual', name: 'The Ritual', vp: 'Up to 50',
+  { id: 'the_ritual', name: 'The Ritual', vp: 'Up to 45',
     summary: 'Extra objective markers appear over the early rounds; score for holding the active set each round.' },
-  { id: 'linchpin', name: 'Linchpin', vp: 'Up to 50',
+  { id: 'linchpin', name: 'Linchpin', vp: 'Up to 45',
     summary: 'Hold objectives, with the central objective worth more than the others.' },
-  { id: 'supply_drop', name: 'Supply Drop', vp: 'Up to 50',
+  { id: 'supply_drop', name: 'Supply Drop', vp: 'Up to 45',
     summary: 'Only a rotating subset of objectives is active each round — hold the active ones to score.' },
-  { id: 'terraform', name: 'Terraform', vp: 'Up to 50',
+  { id: 'terraform', name: 'Terraform', vp: 'Up to 45',
     summary: 'Hold objectives and perform actions to “terraform” them for escalating value as the game goes on.' },
-  { id: 'burden_of_trust', name: 'Burden of Trust', vp: 'Up to 50',
+  { id: 'burden_of_trust', name: 'Burden of Trust', vp: 'Up to 45',
     summary: 'Hold objectives including a nominated “trusted” objective that must stay under your control to score fully.' },
 ];
 

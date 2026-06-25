@@ -93,8 +93,11 @@ export default function Game() {
         <span className="small muted">
           Round {state.turn} · {state.phase} · {state.activePlayer === 'player1' ? 'P1' : 'P2'}
         </span>
-        <button onClick={() => setShowDetachment(true)} disabled={!myRoster?.detachment}>
-          Detachment & Stratagems
+        <button
+          onClick={() => setShowDetachment(true)}
+          disabled={!(myRoster?.detachments?.length || myRoster?.detachment)}
+        >
+          Detachments
         </button>
         <button onClick={() => setShowMissions(true)}>Missions</button>
         <button className={`toolbtn ${tool === 'select' ? 'active' : ''}`} onClick={() => setTool('select')}>Select</button>
@@ -319,7 +322,8 @@ export default function Game() {
       {showDetachment && (
         <DetachmentPanel
           faction={myRoster?.faction}
-          detachment={myRoster?.detachment}
+          detachments={myRoster?.detachments ?? (myRoster?.detachment ? [myRoster.detachment] : [])}
+          points={myRoster?.declaredPoints}
           onClose={() => setShowDetachment(false)}
         />
       )}
