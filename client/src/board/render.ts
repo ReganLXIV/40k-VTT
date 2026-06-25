@@ -234,7 +234,8 @@ function weaponRangesOf(state: RoomState, t: Token): number[] {
   const set = new Set<number>();
   for (const w of u.weapons) {
     if (w.type !== 'ranged') continue;
-    const m = w.range.match(/(\d+)/);
+    // range may be non-string / empty in some ingested rows — coerce safely
+    const m = String(w.range ?? '').match(/(\d+)/);
     if (m) set.add(parseInt(m[1], 10));
   }
   return [...set].sort((a, b) => a - b);
@@ -249,6 +250,7 @@ function drawRangeRing(
   label: string
 ) {
   const rad = inches * scale;
+  if (!Number.isFinite(rad) || rad <= 0 || rad > 1e5) return; // skip pathological radii
   ctx.beginPath();
   ctx.arc(c.x, c.y, rad, 0, Math.PI * 2);
   ctx.strokeStyle = color;

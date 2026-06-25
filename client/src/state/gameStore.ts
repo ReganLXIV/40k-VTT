@@ -28,6 +28,7 @@ interface GameStore {
   showGrid: boolean;
   showRanges: boolean;
   rangeRingInch: number; // custom range ring (e.g. charge 12")
+  renderError: string | null; // last caught board-render error (for on-screen diagnostics)
 
   setMyRoster: (r: HydratedRoster | null) => void;
   setSelectedToken: (id: string | null) => void;
@@ -72,6 +73,7 @@ export const useGame = create<GameStore>((set, get) => {
     showGrid: true,
     showRanges: false,
     rangeRingInch: 12,
+    renderError: null,
     flip: false,
 
     setMyRoster: (r) => set({ myRoster: r }),

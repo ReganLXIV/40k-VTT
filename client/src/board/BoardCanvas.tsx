@@ -72,7 +72,9 @@ export default function BoardCanvas() {
   // ---- render loop ----
   useEffect(() => {
     let raf = 0;
+    let renderErrLogged = false;
     const loop = () => {
+      try {
       const canvas = canvasRef.current;
       const wrap = wrapRef.current;
       const st = useGame.getState().state;
@@ -120,7 +122,18 @@ export default function BoardCanvas() {
           drawMeasureLine(ctx, v, dr.start, cur);
         }
       }
-      raf = requestAnimationFrame(loop);
+      } catch (err) {
+        // A single bad frame must never permanently freeze the canvas: log once
+        // and keep the loop alive so the board keeps refreshing.
+        if (!renderErrLogged) {
+          console.error('[board] render error (loop kept alive)', err);
+          const msg = err instanceof Error ? `${err.message}` : String(err);
+          useGame.setState({ renderError: msg });
+          renderErrLogged = true;
+        }
+      } finally {
+        raf = requestAnimationFrame(loop);
+      }
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);

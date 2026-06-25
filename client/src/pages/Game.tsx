@@ -21,6 +21,7 @@ export default function Game() {
   const toggleGrid = useGame((s) => s.toggleGrid);
   const showRanges = useGame((s) => s.showRanges);
   const toggleRanges = useGame((s) => s.toggleRanges);
+  const renderError = useGame((s) => s.renderError);
   const selectedTokenId = useGame((s) => s.selectedTokenId);
   const selectedIds = useGame((s) => s.selectedIds);
   const [showImport, setShowImport] = useState(false);
@@ -63,6 +64,22 @@ export default function Game() {
 
   return (
     <div className="game">
+      {renderError && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
+            background: '#7f1d1d', color: '#fff', padding: '6px 12px',
+            font: '12px system-ui', display: 'flex', gap: 10, alignItems: 'center',
+          }}
+        >
+          <strong>Board render error:</strong>
+          <span style={{ flex: 1, fontFamily: 'monospace' }}>{renderError}</span>
+          <span className="muted" style={{ color: '#fecaca' }}>
+            (the board keeps running — please screenshot this)
+          </span>
+          <button onClick={() => useGame.setState({ renderError: null })}>Dismiss</button>
+        </div>
+      )}
       <div className="topbar">
         <strong>Room {code}</strong>
         <span className={`badge ${mySlot === 'player1' ? 'p1' : mySlot === 'player2' ? 'p2' : ''}`}>
