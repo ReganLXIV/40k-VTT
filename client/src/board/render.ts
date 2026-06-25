@@ -25,6 +25,8 @@ export interface RenderInput {
   liveRuler: { a: { x: number; y: number }; b: { x: number; y: number } } | null;
   showRanges?: boolean;
   rangeRingInch?: number;
+  showNoDeploy?: boolean;
+  noDeployRadius?: number;
   dpr: number;
 }
 
@@ -184,6 +186,35 @@ export function renderBoard(input: RenderInput) {
     ctx.strokeStyle = '#000a';
     ctx.lineWidth = 2;
     ctx.stroke();
+  }
+
+  // no-deployment radius around the central objective(s) — you can't set up units
+  // within this circle during deployment.
+  if (input.showNoDeploy && (input.noDeployRadius ?? 0) > 0) {
+    const centres = layout.objectives.filter((o) => o.type === 'central');
+    const spots = centres.length
+      ? centres.map((o) => ({ x: o.cx, y: o.cy }))
+      : [{ x: layout.width / 2, y: layout.height / 2 }];
+    for (const s of spots) {
+      const c = inchesToPx(s, v);
+      const rad = (input.noDeployRadius ?? 9) * v.scale;
+      ctx.save();
+      ctx.beginPath();
+      fullArc(ctx, c.x, c.y, rad);
+      ctx.fillStyle = 'rgba(229,57,53,0.10)';
+      ctx.fill();
+      ctx.setLineDash([8, 5]);
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#e53935';
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#e53935';
+      ctx.font = `bold ${Math.max(10, v.scale * 0.8)}px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.fillText('NO DEPLOY', c.x, c.y - rad - 4);
+      ctx.textAlign = 'left';
+      ctx.restore();
+    }
   }
 
   // range rings on the selected token (movement + custom range)

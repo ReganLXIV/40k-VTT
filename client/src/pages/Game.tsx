@@ -22,6 +22,10 @@ export default function Game() {
   const toggleGrid = useGame((s) => s.toggleGrid);
   const showRanges = useGame((s) => s.showRanges);
   const toggleRanges = useGame((s) => s.toggleRanges);
+  const showNoDeploy = useGame((s) => s.showNoDeploy);
+  const noDeployRadius = useGame((s) => s.noDeployRadius);
+  const toggleNoDeploy = useGame((s) => s.toggleNoDeploy);
+  const setNoDeployRadius = useGame((s) => s.setNoDeployRadius);
   const renderError = useGame((s) => s.renderError);
   const selectedTokenId = useGame((s) => s.selectedTokenId);
   const selectedIds = useGame((s) => s.selectedIds);
@@ -290,6 +294,24 @@ export default function Game() {
             >
               Auto-colour control
             </button>
+          </div>
+          <div className="row small" style={{ gap: 6, marginBottom: 6, alignItems: 'center' }}>
+            <button
+              className={`toolbtn ${showNoDeploy ? 'active' : ''}`}
+              onClick={toggleNoDeploy}
+              title="Show the no-deployment radius around the central objective(s)"
+            >
+              No-deploy radius
+            </button>
+            <input
+              type="number"
+              min={0}
+              max={24}
+              value={noDeployRadius}
+              onChange={(e) => setNoDeployRadius(+e.target.value)}
+              style={{ width: 48 }}
+            />
+            <span className="muted">″ around centre</span>
           </div>
           {state.layout.objectives.map((o) => (
             <div className="row small" key={o.id} style={{ padding: '3px 0' }}>

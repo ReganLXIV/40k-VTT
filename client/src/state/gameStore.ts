@@ -31,6 +31,8 @@ interface GameStore {
   showGrid: boolean;
   showRanges: boolean;
   rangeRingInch: number; // custom range ring (e.g. charge 12")
+  showNoDeploy: boolean; // draw a no-deployment radius around central objectives
+  noDeployRadius: number; // inches — you can't deploy within this of the centre objective
   renderError: string | null; // last caught board-render error (for on-screen diagnostics)
 
   // private secondary missions (local to this browser, persisted)
@@ -47,6 +49,8 @@ interface GameStore {
   toggleGrid: () => void;
   toggleRanges: () => void;
   setRangeRing: (n: number) => void;
+  toggleNoDeploy: () => void;
+  setNoDeployRadius: (n: number) => void;
 
   setSecMode: (m: 'tactical' | 'fixed') => void;
   secShuffle: () => void; // (re)build a fresh shuffled Tactical deck
@@ -138,6 +142,8 @@ export const useGame = create<GameStore>((set, get) => {
     showGrid: true,
     showRanges: false,
     rangeRingInch: 12,
+    showNoDeploy: true,
+    noDeployRadius: 9,
     renderError: null,
     ...loadSec(),
     flip: false,
@@ -149,6 +155,8 @@ export const useGame = create<GameStore>((set, get) => {
     toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
     toggleRanges: () => set((s) => ({ showRanges: !s.showRanges })),
     setRangeRing: (n) => set({ rangeRingInch: Math.max(1, Math.min(60, n)) }),
+    toggleNoDeploy: () => set((s) => ({ showNoDeploy: !s.showNoDeploy })),
+    setNoDeployRadius: (n) => set({ noDeployRadius: Math.max(0, Math.min(24, n)) }),
 
     setSecMode: (m) =>
       set((s) => {

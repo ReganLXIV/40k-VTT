@@ -145,6 +145,8 @@ export default function BoardCanvas() {
           liveRuler: rulerRef.current,
           showRanges: gs.showRanges,
           rangeRingInch: gs.rangeRingInch,
+          showNoDeploy: gs.showNoDeploy,
+          noDeployRadius: gs.noDeployRadius,
           dpr,
         });
         drawPings(ctx, v);
