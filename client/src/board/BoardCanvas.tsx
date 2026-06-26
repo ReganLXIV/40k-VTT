@@ -135,6 +135,7 @@ export default function BoardCanvas() {
         });
 
         const gs = useGame.getState();
+        const dr0 = dragRef.current;
         renderBoard({
           ctx,
           v,
@@ -145,6 +146,7 @@ export default function BoardCanvas() {
           liveRuler: rulerRef.current,
           showRanges: gs.showRanges,
           rangeRingInch: gs.rangeRingInch,
+          drag: dr0 ? { id: dr0.id, start: dr0.start } : null,
           dpr,
         });
         drawPings(ctx, v);

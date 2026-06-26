@@ -39,6 +39,9 @@ export interface RenderInput {
   liveRuler: { a: { x: number; y: number }; b: { x: number; y: number } } | null;
   showRanges?: boolean;
   rangeRingInch?: number;
+  // the token currently being dragged + where it was picked up (canonical inches),
+  // so we can show its Move-stat reach from the origin and flag over-moves.
+  drag?: { id: string; start: { x: number; y: number } } | null;
   dpr: number;
 }
 
@@ -236,17 +239,31 @@ export function renderBoard(input: RenderInput) {
   }
 
 
-  // range rings on the selected token (movement + custom range)
+  // range rings on the selected token (movement + weapon ranges). All measured
+  // from the *base edge* (per 40k), not the model centre.
   if (input.showRanges && selectedTokenId) {
     const t = state.tokens.find((tk) => tk.id === selectedTokenId);
     if (t) {
-      const c = inchesToPx({ x: t.x, y: t.y }, v);
+      const centre = { x: t.x, y: t.y };
       const move = moveOf(state, t);
-      if (move > 0) drawRangeRing(ctx, c, move, v.scale, '#4ea1ff', `M ${move}"`);
+      if (move > 0) drawRangeRing(ctx, v, t, centre, move, '#4ea1ff', `M ${move}"`);
       // weapon ranges (gun range) from the unit's ranged weapons
       for (const rg of weaponRangesOf(state, t)) {
-        drawRangeRing(ctx, c, rg, v.scale, '#ffb454', `${rg}"`);
+        drawRangeRing(ctx, v, t, centre, rg, '#ffb454', `${rg}"`);
       }
+    }
+  }
+
+  // while dragging a model, show how far it may still move — its Move stat from
+  // the pick-up point, measured from the base edge — and turn the reach red once
+  // it has over-moved. (The live distance line is drawn by BoardCanvas.)
+  if (input.drag) {
+    const dt = state.tokens.find((tk) => tk.id === input.drag!.id);
+    const move = dt ? moveOf(state, dt) : 0;
+    if (dt && move > 0) {
+      const moved = Math.hypot(dt.x - input.drag.start.x, dt.y - input.drag.start.y);
+      const over = moved > move + 1e-3;
+      drawRangeRing(ctx, v, dt, input.drag.start, move, over ? '#ff5d5d' : '#4ea1ff', `M ${move}"`);
     }
   }
 
@@ -293,31 +310,76 @@ function weaponRangesOf(state: RoomState, t: Token): number[] {
   return [...set].sort((a, b) => a - b);
 }
 
+// A dashed range outline measured from the model's BASE EDGE (per 40k). The
+// outline is the base shape grown outward by `inches`: a bigger circle for round
+// bases, a rounded rectangle (exact Minkowski sum) for rect hulls, an expanded
+// ellipse for ovals. `centre` is canonical inches (token centre or a drag origin).
 function drawRangeRing(
   ctx: CanvasRenderingContext2D,
-  c: { x: number; y: number },
+  v: ViewParams,
+  t: Token,
+  centre: { x: number; y: number },
   inches: number,
-  scale: number,
   color: string,
   label: string
 ) {
-  const rad = inches * scale;
-  if (!Number.isFinite(rad) || rad <= 0 || rad > 1e5) return; // skip pathological radii
-  ctx.beginPath();
-  fullArc(ctx, c.x, c.y, rad);
+  const c = inchesToPx(centre, v);
+  const d = inches * v.scale;
+  if (!Number.isFinite(d) || d <= 0 || d > 1e5) return; // skip pathological radii
+  ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = 1.5;
   ctx.setLineDash([6, 4]);
-  ctx.stroke();
+  const shape = t.baseShape ?? 'circle';
+  let topY: number; // screen-y where the label sits (top of the outline)
+  if ((shape === 'oval' || shape === 'rect') && t.baseW && t.baseH) {
+    const eff = (((t.rotation ?? 0) + (v.flip ? 180 : 0)) * Math.PI) / 180;
+    const hw = Math.max(6, (mmToInches(t.baseW) / 2) * v.scale);
+    const hh = Math.max(6, (mmToInches(t.baseH) / 2) * v.scale);
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(eff);
+    ctx.beginPath();
+    if (shape === 'oval') ctx.ellipse(0, 0, hw + d, hh + d, 0, 0, Math.PI * 2);
+    else roundRectPath(ctx, -hw - d, -hh - d, (hw + d) * 2, (hh + d) * 2, d);
+    ctx.stroke();
+    ctx.restore();
+    topY = c.y - Math.max(hw, hh) - d; // approximate top for the label
+  } else {
+    const baseR = Math.max(7, (mmToInches(t.baseMm) / 2) * v.scale);
+    ctx.beginPath();
+    fullArc(ctx, c.x, c.y, baseR + d);
+    ctx.stroke();
+    topY = c.y - (baseR + d);
+  }
   ctx.setLineDash([]);
   ctx.font = '11px system-ui';
   ctx.textAlign = 'center';
-  ctx.fillStyle = color;
-  ctx.strokeStyle = '#000';
   ctx.lineWidth = 3;
-  ctx.strokeText(label, c.x, c.y - rad - 3);
-  ctx.fillText(label, c.x, c.y - rad - 3);
+  ctx.strokeStyle = '#000';
+  ctx.strokeText(label, c.x, topY - 3);
+  ctx.fillStyle = color;
+  ctx.fillText(label, c.x, topY - 3);
   ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+// Trace a rounded-rectangle subpath (corner radius r) into the current path.
+function roundRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }
 
 function drawToken(
