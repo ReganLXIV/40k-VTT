@@ -1,36 +1,6 @@
 import { useRef, useState } from 'react';
 import type { HydratedRoster } from '@shared/types';
-
-const SAMPLE = `Sample Necron Army (1000 Points)
-
-Xenos - Necrons
-Strike Force (1000 Points)
-Awakened Dynasty
-
-CHARACTERS
-
-Overlord (110 Points)
-  • 1x Overlord
-      1x Tachyon arrow
-      1x Overlord's blade
-
-BATTLELINE
-
-Necron Warriors (200 Points)
-  • 20x Necron Warrior
-      20x Gauss reaper
-
-OTHER DATASHEETS
-
-Immortals (140 Points)
-  • 10x Immortal
-      10x Gauss blaster
-
-Canoptek Doomstalker (140 Points)
-  • 1x Canoptek Doomstalker
-
-Canoptek Scarab Swarms (40 Points)
-  • 3x Canoptek Scarab Swarm`;
+import { SAMPLE_LISTS } from '../data/sampleLists';
 
 export default function ArmyImport({
   onParsed,
@@ -94,7 +64,25 @@ export default function ArmyImport({
           style={{ display: 'none' }}
           onChange={(e) => onFile(e.target.files?.[0])}
         />
-        <button onClick={() => setText(SAMPLE)} disabled={busy}>Load sample list</button>
+        <select
+          value=""
+          disabled={busy}
+          title="Load a ready-made ~1000pt army"
+          onChange={(e) => {
+            const s = SAMPLE_LISTS.find((x) => x.id === e.target.value);
+            if (s) {
+              setText(s.text);
+              submit(s.text);
+            }
+          }}
+        >
+          <option value="">Load sample list…</option>
+          {SAMPLE_LISTS.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </select>
       </div>
       {error && <div className="badge bad" style={{ marginTop: 8 }}>{error}</div>}
     </div>
