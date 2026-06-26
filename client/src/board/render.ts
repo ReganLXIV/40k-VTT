@@ -15,6 +15,19 @@ function ownerColor(o: PlayerSlot): string {
   return o === 'player1' ? P1 : P2;
 }
 
+// Does a circle (centre + radius, all in inches) overlap a polygon (flat [x,y,…])?
+// Nearest polygon vertex to a point, in inches. Diagonal/quarters deployment
+// layouts have a zone *corner* that reaches in toward the board centre (~8–9"),
+// whereas straight long/short-edge splits keep every corner out at the board
+// edge (≥14"). That gap is what tells the two families apart.
+function nearestVertexDist(cx: number, cy: number, poly: number[]): number {
+  let m = Infinity;
+  for (let i = 0; i < poly.length; i += 2) {
+    m = Math.min(m, Math.hypot(poly[i] - cx, poly[i + 1] - cy));
+  }
+  return m;
+}
+
 export interface RenderInput {
   ctx: CanvasRenderingContext2D;
   v: ViewParams;
@@ -25,8 +38,6 @@ export interface RenderInput {
   liveRuler: { a: { x: number; y: number }; b: { x: number; y: number } } | null;
   showRanges?: boolean;
   rangeRingInch?: number;
-  showNoDeploy?: boolean;
-  noDeployRadius?: number;
   dpr: number;
 }
 
@@ -92,22 +103,65 @@ export function renderBoard(input: RenderInput) {
     }
   }
 
-  // deployment zones
+  // Deployment zones. Only for deployments where a zone corner reaches in toward
+  // the board centre (diagonal / quarters layouts) do we carve the central 9"
+  // no-deploy circle out so the boundaries curve inwards; straight long/short-edge
+  // splits keep their corners at the board edge and stay as flat zones.
+  const CENTRE_NO_DEPLOY = 9; // inches
+  const CARVE_VERTEX_REACH = 11; // a zone corner within this of centre = a reaching layout
+  const centreIn = { x: layout.width / 2, y: layout.height / 2 };
+  const carve = layout.deploymentZones.some(
+    (dz) => nearestVertexDist(centreIn.x, centreIn.y, dz.polygon) <= CARVE_VERTEX_REACH
+  );
+  const centrePx = inchesToPx(centreIn, v);
+  const carveR = CENTRE_NO_DEPLOY * v.scale;
+  const clipOutsideCircle = () => {
+    ctx.beginPath();
+    ctx.rect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.moveTo(centrePx.x + carveR, centrePx.y);
+    ctx.arc(centrePx.x, centrePx.y, carveR, 0, Math.PI * 2);
+    ctx.clip('evenodd');
+  };
   for (const dz of layout.deploymentZones) {
     const mine = dz.player === mySlot;
-    ctx.beginPath();
-    for (let i = 0; i < dz.polygon.length; i += 2) {
-      const p = inchesToPx({ x: dz.polygon[i], y: dz.polygon[i + 1] }, v);
-      if (i === 0) ctx.moveTo(p.x, p.y);
-      else ctx.lineTo(p.x, p.y);
-    }
-    ctx.closePath();
     const c = ownerColor(dz.player);
+    const buildPoly = () => {
+      ctx.beginPath();
+      for (let i = 0; i < dz.polygon.length; i += 2) {
+        const p = inchesToPx({ x: dz.polygon[i], y: dz.polygon[i + 1] }, v);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.closePath();
+    };
     ctx.fillStyle = hexA(c, mine ? 0.16 : 0.08);
-    ctx.fill();
     ctx.strokeStyle = hexA(c, 0.5);
-    ctx.setLineDash([6, 4]);
     ctx.lineWidth = mine ? 2 : 1;
+    if (carve) {
+      // fill and outline clipped to outside the central circle → curved boundary
+      ctx.save();
+      clipOutsideCircle();
+      buildPoly();
+      ctx.fill();
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    } else {
+      buildPoly();
+      ctx.fill();
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+  // the central circle the zones curve around (the shared inner boundary)
+  if (carve) {
+    ctx.beginPath();
+    fullArc(ctx, centrePx.x, centrePx.y, carveR);
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = 'rgba(220,225,235,0.6)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -188,34 +242,6 @@ export function renderBoard(input: RenderInput) {
     ctx.stroke();
   }
 
-  // no-deployment radius around the central objective(s) — you can't set up units
-  // within this circle during deployment.
-  if (input.showNoDeploy && (input.noDeployRadius ?? 0) > 0) {
-    const centres = layout.objectives.filter((o) => o.type === 'central');
-    const spots = centres.length
-      ? centres.map((o) => ({ x: o.cx, y: o.cy }))
-      : [{ x: layout.width / 2, y: layout.height / 2 }];
-    for (const s of spots) {
-      const c = inchesToPx(s, v);
-      const rad = (input.noDeployRadius ?? 9) * v.scale;
-      ctx.save();
-      ctx.beginPath();
-      fullArc(ctx, c.x, c.y, rad);
-      ctx.fillStyle = 'rgba(229,57,53,0.10)';
-      ctx.fill();
-      ctx.setLineDash([8, 5]);
-      ctx.lineWidth = 2.5;
-      ctx.strokeStyle = '#e53935';
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = '#e53935';
-      ctx.font = `bold ${Math.max(10, v.scale * 0.8)}px system-ui`;
-      ctx.textAlign = 'center';
-      ctx.fillText('NO DEPLOY', c.x, c.y - rad - 4);
-      ctx.textAlign = 'left';
-      ctx.restore();
-    }
-  }
 
   // range rings on the selected token (movement + custom range)
   if (input.showRanges && selectedTokenId) {
