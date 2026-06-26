@@ -291,7 +291,8 @@ export function computeObjectiveControl(
     }
     if (p1 > p2) result[o.id] = 'player1';
     else if (p2 > p1) result[o.id] = 'player2';
-    // tie → leave control unchanged
+    else if (p1 === 0) result[o.id] = null; // emptied: nobody on it → neutral
+    // contested tie (equal OC, both > 0) → leave control unchanged
   }
   return result;
 }
