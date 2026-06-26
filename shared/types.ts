@@ -213,6 +213,7 @@ export interface Token {
   baseW?: number; // mm — oval / rect width
   baseH?: number; // mm — oval / rect length
   rotation?: number; // degrees (for non-circular bases)
+  groupId?: string; // models spawned together from one unit share this (for coherency)
 }
 
 export interface DiceResult {

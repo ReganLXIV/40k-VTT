@@ -30,6 +30,7 @@ interface GameStore {
   tool: Tool;
   showGrid: boolean;
   showRanges: boolean;
+  showDeployAid: boolean; // overlay deployment legality + unit coherency for my army
   rangeRingInch: number; // custom range ring (e.g. charge 12")
   renderError: string | null; // last caught board-render error (for on-screen diagnostics)
 
@@ -46,6 +47,7 @@ interface GameStore {
   setTool: (t: Tool) => void;
   toggleGrid: () => void;
   toggleRanges: () => void;
+  toggleDeployAid: () => void;
   setRangeRing: (n: number) => void;
 
   setSecMode: (m: 'tactical' | 'fixed') => void;
@@ -137,6 +139,7 @@ export const useGame = create<GameStore>((set, get) => {
     tool: 'select',
     showGrid: true,
     showRanges: false,
+    showDeployAid: false,
     rangeRingInch: 12,
     renderError: null,
     ...loadSec(),
@@ -148,6 +151,7 @@ export const useGame = create<GameStore>((set, get) => {
     setTool: (t) => set({ tool: t }),
     toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
     toggleRanges: () => set((s) => ({ showRanges: !s.showRanges })),
+    toggleDeployAid: () => set((s) => ({ showDeployAid: !s.showDeployAid })),
     setRangeRing: (n) => set({ rangeRingInch: Math.max(1, Math.min(60, n)) }),
 
     setSecMode: (m) =>

@@ -22,6 +22,8 @@ export default function Game() {
   const toggleGrid = useGame((s) => s.toggleGrid);
   const showRanges = useGame((s) => s.showRanges);
   const toggleRanges = useGame((s) => s.toggleRanges);
+  const showDeployAid = useGame((s) => s.showDeployAid);
+  const toggleDeployAid = useGame((s) => s.toggleDeployAid);
   const renderError = useGame((s) => s.renderError);
   const selectedTokenId = useGame((s) => s.selectedTokenId);
   const selectedIds = useGame((s) => s.selectedIds);
@@ -103,6 +105,7 @@ export default function Game() {
         <button className={`toolbtn ${tool === 'pan' ? 'active' : ''}`} onClick={() => setTool('pan')} title="Drag to pan; scroll wheel zooms anytime">Pan</button>
         <button className={`toolbtn ${showGrid ? 'active' : ''}`} onClick={toggleGrid}>Grid</button>
         <button className={`toolbtn ${showRanges ? 'active' : ''}`} onClick={toggleRanges} title="Show Move + weapon range rings around the selected unit">Ranges</button>
+        <button className={`toolbtn ${showDeployAid ? 'active' : ''}`} onClick={toggleDeployAid} title="Flag your models outside your deployment zone / within 9&quot; of the enemy, and units out of coherency">Deploy aid</button>
         <button className="danger" onClick={leaveRoom}>Leave</button>
       </div>
 

@@ -38,6 +38,7 @@ export interface RenderInput {
   showGrid: boolean;
   liveRuler: { a: { x: number; y: number }; b: { x: number; y: number } } | null;
   showRanges?: boolean;
+  showDeployAid?: boolean;
   rangeRingInch?: number;
   // the token currently being dragged + where it was picked up (canonical inches),
   // so we can show its Move-stat reach from the origin and flag over-moves.
@@ -270,6 +271,11 @@ export function renderBoard(input: RenderInput) {
   // tokens
   for (const t of state.tokens) {
     drawToken(ctx, v, t, t.id === selectedTokenId);
+  }
+
+  // deployment legality + unit coherency aid (my army only)
+  if (input.showDeployAid && (mySlot === 'player1' || mySlot === 'player2')) {
+    drawDeployAid(ctx, v, state, mySlot);
   }
 
   // saved ruler (opponent's or persisted)
@@ -559,6 +565,105 @@ function poly(ctx: CanvasRenderingContext2D, pts: { x: number; y: number }[]) {
   pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
   ctx.closePath();
 }
+// --- deployment legality + coherency aid ---
+
+// Base radius in inches (max half-extent for non-circular bases) — used for
+// edge-to-edge distances (9" deploy gap, 2" coherency).
+function baseRin(t: Token): number {
+  if ((t.baseShape === 'oval' || t.baseShape === 'rect') && t.baseW && t.baseH) {
+    return mmToInches(Math.max(t.baseW, t.baseH)) / 2;
+  }
+  return mmToInches(t.baseMm) / 2;
+}
+
+function pointInPolygon(x: number, y: number, poly: number[]): boolean {
+  let inside = false;
+  const n = poly.length / 2;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = poly[i * 2], yi = poly[i * 2 + 1];
+    const xj = poly[j * 2], yj = poly[j * 2 + 1];
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+function markRing(
+  ctx: CanvasRenderingContext2D,
+  v: ViewParams,
+  t: Token,
+  color: string,
+  label: string,
+  pad: number,
+  below: boolean
+) {
+  const c = inchesToPx({ x: t.x, y: t.y }, v);
+  const r = Math.max(8, baseRin(t) * v.scale) + pad;
+  ctx.save();
+  ctx.beginPath();
+  fullArc(ctx, c.x, c.y, r);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([3, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = 'bold 10px system-ui';
+  ctx.textAlign = 'center';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#000';
+  const ly = below ? c.y + r + 11 : c.y - r - 3;
+  ctx.strokeText(label, c.x, ly);
+  ctx.fillStyle = color;
+  ctx.fillText(label, c.x, ly);
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+function drawDeployAid(
+  ctx: CanvasRenderingContext2D,
+  v: ViewParams,
+  state: RoomState,
+  mySlot: PlayerSlot
+) {
+  const ownZone = state.layout.deploymentZones.find((z) => z.player === mySlot)?.polygon;
+  const enemy: PlayerSlot = mySlot === 'player1' ? 'player2' : 'player1';
+  const alive = (t: Token) => !t.status.includes('Destroyed');
+  const mine = state.tokens.filter((t) => t.owner === mySlot && alive(t));
+  const foes = state.tokens.filter((t) => t.owner === enemy && alive(t));
+
+  // deployment legality: must sit inside own zone and >9" from every enemy model
+  for (const t of mine) {
+    const inZone = ownZone ? pointInPolygon(t.x, t.y, ownZone) : true;
+    const rT = baseRin(t);
+    if (!inZone) {
+      markRing(ctx, v, t, '#ff5d5d', 'out of zone', 4, false);
+      continue;
+    }
+    const near = foes.some((e) => Math.hypot(t.x - e.x, t.y - e.y) - rT - baseRin(e) <= 9);
+    if (near) markRing(ctx, v, t, '#ff5d5d', '<9" enemy', 4, false);
+  }
+
+  // coherency: every model within 2" (base-to-base) of another in its unit; units
+  // of 7+ need two such neighbours.
+  const groups = new Map<string, Token[]>();
+  for (const t of mine) {
+    if (!t.groupId) continue;
+    const g = groups.get(t.groupId);
+    if (g) g.push(t);
+    else groups.set(t.groupId, [t]);
+  }
+  for (const g of groups.values()) {
+    if (g.length < 2) continue;
+    const need = g.length >= 7 ? 2 : 1;
+    for (const t of g) {
+      const rT = baseRin(t);
+      const neighbours = g.filter(
+        (o) => o !== t && Math.hypot(t.x - o.x, t.y - o.y) - rT - baseRin(o) <= 2
+      ).length;
+      if (neighbours < need) markRing(ctx, v, t, '#ffa94d', 'coherency', 9, true);
+    }
+  }
+}
+
 function hexA(hex: string, a: number): string {
   const h = hex.replace('#', '');
   const r = parseInt(h.slice(0, 2), 16);

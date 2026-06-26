@@ -145,6 +145,7 @@ export default function BoardCanvas() {
           showGrid: gs.showGrid,
           liveRuler: rulerRef.current,
           showRanges: gs.showRanges,
+          showDeployAid: gs.showDeployAid,
           rangeRingInch: gs.rangeRingInch,
           drag: dr0 ? { id: dr0.id, start: dr0.start } : null,
           dpr,

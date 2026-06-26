@@ -139,6 +139,7 @@ export function spawnTokensFromUnit(
 
   const created: Token[] = [];
   if (asModels && flat.length > 1) {
+    const groupId = makeId(); // all models of this unit share a coherency group
     const cols = Math.ceil(Math.sqrt(flat.length));
     const spacing = Math.max(unit.baseMm / 25.4, 1.0) + 0.2;
     const labelCounts: Record<string, number> = {};
@@ -165,6 +166,7 @@ export function spawnTokensFromUnit(
         modelsMax: 1,
         modelsCurrent: 1,
         status: [],
+        groupId,
       });
     });
   } else {
@@ -218,6 +220,7 @@ export function deployAll(state: RoomState, owner: PlayerSlot, makeId: () => str
   const cellH = (maxY - minY) / unitRows;
 
   pending.forEach((u, ui) => {
+    const groupId = makeId(); // this unit's coherency group
     const cellX = minX + (ui % unitCols) * cellW;
     const cellY = minY + Math.floor(ui / unitCols) * cellH;
 
@@ -250,6 +253,7 @@ export function deployAll(state: RoomState, owner: PlayerSlot, makeId: () => str
         modelsMax: 1,
         modelsCurrent: 1,
         status: [],
+        groupId,
       });
     });
   });
