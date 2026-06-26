@@ -15,17 +15,18 @@ function ownerColor(o: PlayerSlot): string {
   return o === 'player1' ? P1 : P2;
 }
 
-// Does a circle (centre + radius, all in inches) overlap a polygon (flat [x,y,…])?
-// Nearest polygon vertex to a point, in inches. Diagonal/quarters deployment
-// layouts have a zone *corner* that reaches in toward the board centre (~8–9"),
-// whereas straight long/short-edge splits keep every corner out at the board
-// edge (≥14"). That gap is what tells the two families apart.
-function nearestVertexDist(cx: number, cy: number, poly: number[]): number {
-  let m = Infinity;
+// Count a polygon's distinct vertices that fall within `reach` inches of a point.
+// Diagonal/quarters deployment layouts wrap each player's zone around the board
+// centre, so each player contributes *two* corners near it; straight long/short-
+// edge splits and stepped splits give each player only one. Counting per player
+// (rather than overall distance) is what separates the two families.
+function vertsWithin(cx: number, cy: number, poly: number[], reach: number): number {
+  const seen = new Set<string>();
   for (let i = 0; i < poly.length; i += 2) {
-    m = Math.min(m, Math.hypot(poly[i] - cx, poly[i + 1] - cy));
+    const x = poly[i], y = poly[i + 1];
+    if (Math.hypot(x - cx, y - cy) <= reach) seen.add(`${Math.round(x)},${Math.round(y)}`);
   }
-  return m;
+  return seen.size;
 }
 
 export interface RenderInput {
@@ -103,16 +104,18 @@ export function renderBoard(input: RenderInput) {
     }
   }
 
-  // Deployment zones. Only for deployments where a zone corner reaches in toward
-  // the board centre (diagonal / quarters layouts) do we carve the central 9"
-  // no-deploy circle out so the boundaries curve inwards; straight long/short-edge
-  // splits keep their corners at the board edge and stay as flat zones.
+  // Deployment zones. Only diagonal / quarters layouts — where both players' zones
+  // wrap around the board centre, each contributing two corners near it — get the
+  // central 9" no-deploy circle carved out so their boundaries curve inwards.
+  // Plain or stepped long/short-edge splits (one corner per player near centre)
+  // stay as flat zones.
   const CENTRE_NO_DEPLOY = 9; // inches
-  const CARVE_VERTEX_REACH = 11; // a zone corner within this of centre = a reaching layout
+  const CARVE_VERTEX_REACH = 11; // a zone corner within this of centre = "reaching" the centre
   const centreIn = { x: layout.width / 2, y: layout.height / 2 };
-  const carve = layout.deploymentZones.some(
-    (dz) => nearestVertexDist(centreIn.x, centreIn.y, dz.polygon) <= CARVE_VERTEX_REACH
-  );
+  const wrapping = layout.deploymentZones.filter(
+    (dz) => vertsWithin(centreIn.x, centreIn.y, dz.polygon, CARVE_VERTEX_REACH) >= 2
+  ).length;
+  const carve = wrapping >= 2;
   const centrePx = inchesToPx(centreIn, v);
   const carveR = CENTRE_NO_DEPLOY * v.scale;
   const clipOutsideCircle = () => {
@@ -154,16 +157,6 @@ export function renderBoard(input: RenderInput) {
       ctx.stroke();
       ctx.setLineDash([]);
     }
-  }
-  // the central circle the zones curve around (the shared inner boundary)
-  if (carve) {
-    ctx.beginPath();
-    fullArc(ctx, centrePx.x, centrePx.y, carveR);
-    ctx.setLineDash([6, 4]);
-    ctx.strokeStyle = 'rgba(220,225,235,0.6)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.setLineDash([]);
   }
 
   // Which terrain footprints are objectives, and who controls each — the whole
