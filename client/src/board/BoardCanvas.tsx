@@ -500,50 +500,61 @@ function QuickMenuView({
   }, [onClose]);
 
   const stop = (e: React.MouseEvent) => e.stopPropagation();
+  const multi = token.modelsMax > 1;
+  const perModel = Math.max(1, Math.round(token.woundsMax / Math.max(1, token.modelsMax)));
+  const belowHalf = multi
+    ? token.modelsCurrent * 2 < token.modelsMax
+    : token.woundsCurrent * 2 < token.woundsMax;
+  const shocked = token.status.includes('Battle-shocked');
+
+  const setWounds = (n: number) =>
+    intents.update(token.id, { woundsCurrent: Math.max(0, Math.min(token.woundsMax, n)) });
+  const setModels = (n: number) => {
+    const m = Math.max(0, Math.min(token.modelsMax, n));
+    // adding/removing a model carries that model's wounds with it
+    const w = Math.max(0, Math.min(token.woundsMax, m * perModel));
+    intents.update(token.id, { modelsCurrent: m, woundsCurrent: w });
+  };
 
   return (
     <div className="quick-menu" style={{ left: x, top: y }} onMouseDown={stop} onClick={stop}>
-      <strong className="small">{token.label}</strong>
-      <button
-        onClick={() =>
-          intents.update(token.id, { woundsCurrent: Math.max(0, token.woundsCurrent - 1) })
-        }
-      >
-        −1 wound ({token.woundsCurrent}/{token.woundsMax})
-      </button>
-      <button
-        onClick={() => {
-          const v = prompt('Set current wounds', String(token.woundsCurrent));
-          if (v !== null) intents.update(token.id, { woundsCurrent: Math.max(0, Number(v) || 0) });
-        }}
-      >
-        Set wounds…
-      </button>
-      {token.modelsMax > 1 && (
+      <strong className="small">
+        {token.label}
+        {belowHalf && <span style={{ color: '#ff8ad1', marginLeft: 6 }}>· below ½</span>}
+        {shocked && <span style={{ color: '#f2c14e', marginLeft: 6 }}>· shocked</span>}
+      </strong>
+
+      <div className="row small" style={{ gap: 6, alignItems: 'center' }}>
+        <span style={{ width: 52 }}>Wounds</span>
+        <button onClick={() => setWounds(token.woundsCurrent - 1)}>−</button>
+        <span style={{ minWidth: 44, textAlign: 'center' }}>
+          {token.woundsCurrent}/{token.woundsMax}
+        </span>
+        <button onClick={() => setWounds(token.woundsCurrent + 1)}>+</button>
         <button
-          onClick={() =>
-            intents.update(token.id, {
-              modelsCurrent: Math.max(0, token.modelsCurrent - 1),
-            })
-          }
+          onClick={() => {
+            const v = prompt('Set current wounds', String(token.woundsCurrent));
+            if (v !== null) setWounds(Number(v) || 0);
+          }}
+          title="Set exact wounds"
         >
-          −1 model ({token.modelsCurrent}/{token.modelsMax})
+          …
         </button>
+      </div>
+
+      {multi && (
+        <div className="row small" style={{ gap: 6, alignItems: 'center' }}>
+          <span style={{ width: 52 }}>Models</span>
+          <button onClick={() => setModels(token.modelsCurrent - 1)}>−</button>
+          <span style={{ minWidth: 44, textAlign: 'center' }}>
+            {token.modelsCurrent}/{token.modelsMax}
+          </span>
+          <button onClick={() => setModels(token.modelsCurrent + 1)}>+</button>
+        </div>
       )}
-      <button
-        onClick={() => {
-          if (token.modelsMax > 1) {
-            const perModel = Math.max(1, Math.round(token.woundsMax / token.modelsMax));
-            intents.update(token.id, {
-              modelsCurrent: Math.min(token.modelsMax, token.modelsCurrent + 1),
-              woundsCurrent: Math.min(token.woundsMax, token.woundsCurrent + perModel),
-            });
-          } else {
-            intents.clone(token.id, 1);
-          }
-        }}
-      >
-        Reanimate +1 ⟳
+
+      <button onClick={() => intents.battleshock(token.id)} title="Roll 2D6 vs Leadership">
+        Battle-shock test ⚄⚄
       </button>
       <button
         onClick={() => {

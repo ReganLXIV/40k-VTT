@@ -214,6 +214,37 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     broadcastFull(io, state.code);
   });
 
+  socket.on('unit:battleshock', ({ id }) => {
+    const state = requireRoom();
+    const slot = socket.data.slot;
+    if (!state || !slot || slot === 'spectator') return;
+    const t = state.tokens.find((tk) => tk.id === id);
+    if (!t || t.owner !== slot) return;
+    const roster = state.players[t.owner]?.roster;
+    const unit = roster?.units.find((u) => u.datasheetId === t.datasheetId);
+    const ld = parseInt(String(unit?.profile?.ld ?? '').match(/\d+/)?.[0] ?? '7', 10);
+    const r1 = 1 + Math.floor(Math.random() * 6);
+    const r2 = 1 + Math.floor(Math.random() * 6);
+    const total = r1 + r2;
+    const passed = total >= ld;
+    const has = t.status.includes('Battle-shocked');
+    if (!passed && !has) t.status = [...t.status, 'Battle-shocked'];
+    else if (passed && has) t.status = t.status.filter((s) => s !== 'Battle-shocked');
+    state.dice.unshift({
+      id: nanoid(6),
+      owner: slot,
+      label: `Battle-shock ${t.label} (Ld ${ld}+) — ${passed ? 'PASS' : 'FAIL'}`,
+      n: 2,
+      sides: 6,
+      rolls: [r1, r2],
+      total,
+      at: Date.now(),
+    });
+    state.dice = state.dice.slice(0, 30);
+    state.objectives = computeObjectiveControl(state); // OC drops to 0 while battle-shocked
+    broadcastFull(io, state.code);
+  });
+
   socket.on('dice:reroll1s', ({ id }) => {
     const state = requireRoom();
     const slot = socket.data.slot;

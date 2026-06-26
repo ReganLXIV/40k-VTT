@@ -263,6 +263,7 @@ export const intents = {
   adjustScore: (player: PlayerSlot, delta: number) =>
     socket.emit('score:adjust', { player, delta }),
   autoObjectives: () => socket.emit('objectives:auto'),
+  battleshock: (id: string) => socket.emit('unit:battleshock', { id }),
   rollOff: () => socket.emit('game:rollOff'),
   setPrimaryMission: (id: string) => socket.emit('mission:setPrimary', { id }),
   ping: (x: number, y: number) => socket.emit('ping:add', { x, y }),

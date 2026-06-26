@@ -457,6 +457,15 @@ function drawToken(
     ctx.strokeText(chip, c.x, c.y + r + 2 + 11);
     ctx.fillText(chip, c.x, c.y + r + 2 + 11);
   }
+  // below-half-strength marker (drives battle-shock tests & some scoring)
+  const belowHalf =
+    t.modelsMax > 1 ? t.modelsCurrent * 2 < t.modelsMax : t.woundsCurrent * 2 < t.woundsMax;
+  if (belowHalf && !destroyed) {
+    ctx.fillStyle = '#ff8ad1';
+    const yy = c.y + r + 2 + (t.status.length ? 22 : 11);
+    ctx.strokeText('below ½', c.x, yy);
+    ctx.fillText('below ½', c.x, yy);
+  }
   // special weapon marker (above the token)
   if (t.weapon) {
     ctx.fillStyle = '#ffd84e';

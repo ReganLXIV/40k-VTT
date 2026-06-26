@@ -308,6 +308,7 @@ export interface ClientToServer {
   'cp:adjust': (data: { player: PlayerSlot; delta: number }) => void;
   'score:adjust': (data: { player: PlayerSlot; delta: number }) => void;
   'objectives:auto': () => void; // recompute objective control from model OC (colours only)
+  'unit:battleshock': (data: { id: string }) => void; // 2D6 vs Ld; tag Battle-shocked on fail
   'game:rollOff': () => void; // roll off for who takes the first turn
   'mission:setPrimary': (data: { id: string }) => void; // shared primary mission selection
   'ping:add': (data: { x: number; y: number }) => void;
