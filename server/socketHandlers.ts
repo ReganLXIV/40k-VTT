@@ -13,6 +13,7 @@ import {
   deployAll,
   getRoom,
   markEmptyIfNeeded,
+  persistRoom,
   setLayout,
   setRosterTokensCleared,
   spawnTokensFromUnit,
@@ -44,13 +45,19 @@ function lightLayout(l: Layout): Layout {
 
 function broadcastFull(io: TServer, code: string) {
   const state = getRoom(code);
-  if (state) io.to(code).emit('state:patch', { ...state, layout: lightLayout(state.layout) });
+  if (state) {
+    io.to(code).emit('state:patch', { ...state, layout: lightLayout(state.layout) });
+    persistRoom(code); // snapshot after every change so a restart can resume
+  }
 }
 
 // Use when the layout itself changed: sends the full state incl. geometry.
 function broadcastLayout(io: TServer, code: string) {
   const state = getRoom(code);
-  if (state) io.to(code).emit('state:full', state);
+  if (state) {
+    io.to(code).emit('state:full', state);
+    persistRoom(code);
+  }
 }
 
 export function registerHandlers(io: TServer, socket: TSocket) {

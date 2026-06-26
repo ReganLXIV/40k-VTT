@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { customAlphabet } from 'nanoid';
 import type {
   HydratedRoster,
@@ -9,6 +11,7 @@ import type {
 } from '../shared/types.js';
 import { getDefaultLayout, getLayoutById } from './layouts.js';
 import { baseTouchesTerrain, objectiveFootprint } from '../shared/objectives.js';
+import { DATA_DIR } from './paths.js';
 
 // Ambiguity-free alphabet (no 0/O/1/I/L).
 const makeCode = customAlphabet('ABCDEFGHJKMNPQRSTUVWXYZ23456789', 5);
@@ -21,6 +24,66 @@ interface RoomEntry {
 }
 
 const rooms = new Map<string, RoomEntry>();
+
+// --- persistence: snapshot rooms to disk so a server restart resumes games ---
+const ROOM_DIR = path.join(DATA_DIR, 'rooms');
+const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const roomFile = (code: string) => path.join(ROOM_DIR, `${code}.json`);
+
+// Debounced write of a room's current state (call after any mutation/broadcast).
+export function persistRoom(code: string) {
+  const entry = rooms.get(code);
+  if (!entry) return;
+  const prev = saveTimers.get(code);
+  if (prev) clearTimeout(prev);
+  saveTimers.set(
+    code,
+    setTimeout(() => {
+      saveTimers.delete(code);
+      try {
+        fs.mkdirSync(ROOM_DIR, { recursive: true });
+        fs.writeFileSync(roomFile(code), JSON.stringify(entry.state));
+      } catch (e) {
+        console.error('[rooms] persist failed', code, e);
+      }
+    }, 800)
+  );
+}
+
+function deleteRoomFile(code: string) {
+  const t = saveTimers.get(code);
+  if (t) {
+    clearTimeout(t);
+    saveTimers.delete(code);
+  }
+  try {
+    fs.rmSync(roomFile(code), { force: true });
+  } catch {
+    /* ignore */
+  }
+}
+
+// Restore any persisted rooms at startup. Connection flags are transient, so we
+// clear them (nobody is connected yet) and arm the empty-room reaper.
+export function loadPersistedRooms() {
+  let files: string[] = [];
+  try {
+    files = fs.readdirSync(ROOM_DIR).filter((f) => f.endsWith('.json'));
+  } catch {
+    return; // no rooms dir yet
+  }
+  for (const f of files) {
+    try {
+      const state = JSON.parse(fs.readFileSync(path.join(ROOM_DIR, f), 'utf8')) as RoomState;
+      if (state.players.player1) state.players.player1.connected = false;
+      if (state.players.player2) state.players.player2.connected = false;
+      rooms.set(state.code, { state, emptySince: Date.now() });
+    } catch (e) {
+      console.error('[rooms] failed to restore', f, e);
+    }
+  }
+  if (rooms.size) console.log(`[rooms] restored ${rooms.size} room(s) from disk`);
+}
 
 function freshState(code: string, layout: Layout): RoomState {
   const objectives: Record<string, PlayerSlot | null> = {};
@@ -69,6 +132,7 @@ export function reapEmptyRooms() {
   for (const [code, entry] of rooms) {
     if (entry.emptySince !== null && now - entry.emptySince > ROOM_TTL_MS) {
       rooms.delete(code);
+      deleteRoomFile(code);
     }
   }
 }

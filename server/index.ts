@@ -9,7 +9,7 @@ import { hydrateRoster } from './hydrate.js';
 import { getDatasheet, allDatasheetIndex, dbExists, getDetachmentInfo, listDetachments } from './db.js';
 import { loadLayouts } from './layouts.js';
 import { registerHandlers } from './socketHandlers.js';
-import { reapEmptyRooms } from './rooms.js';
+import { loadPersistedRooms, reapEmptyRooms } from './rooms.js';
 import type { ClientToServer, ServerToClient } from '../shared/types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -126,6 +126,7 @@ io.on('connection', (socket) => {
   registerHandlers(io, socket);
 });
 
+loadPersistedRooms(); // resume any games snapshotted before a restart
 setInterval(reapEmptyRooms, 60 * 1000);
 
 httpServer.listen(PORT, () => {
