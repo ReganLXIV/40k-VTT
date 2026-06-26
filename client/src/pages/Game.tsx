@@ -286,6 +286,38 @@ export default function Game() {
 
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Objectives</h3>
+          {(() => {
+            const objs = state.layout.objectives;
+            const held1 = objs.filter((o) => state.objectives[o.id] === 'player1').length;
+            const held2 = objs.filter((o) => state.objectives[o.id] === 'player2').length;
+            const myHeld = mySlot === 'player2' ? held2 : held1;
+            const primaryVP = Math.min(15, myHeld * 5); // generic: 5 VP/objective, capped 15
+            return (
+              <div className="small" style={{ marginBottom: 8, lineHeight: 1.7 }}>
+                <div>
+                  Held — <span className="badge p1">P1 {held1}</span>{' '}
+                  <span className="badge p2">P2 {held2}</span>
+                </div>
+                <div className="muted">
+                  Score — P1 {state.score.player1} · P2 {state.score.player2}
+                </div>
+                {mySlot && (
+                  <div className="row" style={{ gap: 6, alignItems: 'center', marginTop: 4 }}>
+                    <span>
+                      Primary now: <strong>{primaryVP}</strong> VP
+                    </span>
+                    <button
+                      disabled={primaryVP === 0}
+                      onClick={() => intents.adjustScore(mySlot, primaryVP)}
+                      title="Add this round's primary VP (5 per objective you hold, capped at 15) to your score. Generic estimate — adjust for your mission."
+                    >
+                      +{primaryVP} to me
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <div className="row small" style={{ gap: 6, marginBottom: 6 }}>
             <button
               onClick={() => intents.autoObjectives()}
