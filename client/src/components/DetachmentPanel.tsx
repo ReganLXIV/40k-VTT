@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { DetachmentInfo } from '@shared/types';
 import { detachmentDP } from '../data/detachmentPoints';
+import { detachment11e } from '../data/detachments11e';
 
 // Detachment Points budget by game size (11th edition): Incursion (~1000 pts) = 2,
 // Strike Force (~2000 pts) = 3. Detachments themselves cost 1–3 DP each.
@@ -144,62 +145,126 @@ export default function DetachmentPanel({
 
         {selected.map((name) => {
           const info = infos[name];
+          const ov = detachment11e(faction, name);
           return (
             <section key={name} style={{ marginTop: 14, borderTop: '1px solid #2a2a2a', paddingTop: 10 }}>
               <div className="row" style={{ margin: '0 0 8px', gap: 8, alignItems: 'center' }}>
                 <h2 style={{ margin: 0 }}>{name}</h2>
                 <span className="badge warn">{dpLabel(name)}</span>
+                {ov ? (
+                  <span className="badge p2">11th ed</span>
+                ) : (
+                  <span className="badge" title="From the Wahapedia import, which is 10th edition">
+                    10th ed (Wahapedia)
+                  </span>
+                )}
               </div>
-              {!info && <p className="muted small">Loading…</p>}
-              {info && 'error' in info && <div className="badge bad">{info.error}</div>}
-              {info && !('error' in info) && (
+
+              {/* 11th-edition override: my own concise effect summaries */}
+              {ov ? (
                 <>
-                  {info.abilities.length > 0 && (
-                    <div style={{ marginBottom: 8 }}>
-                      <h3>Detachment rule</h3>
-                      {info.abilities.map((a, i) => (
-                        <div key={i} className="card" style={{ marginBottom: 8 }}>
-                          <strong>{a.name}</strong>
-                          <div className="small" style={{ marginTop: 4 }}>{a.description}</div>
-                        </div>
-                      ))}
-                    </div>
+                  {ov.partial && (
+                    <p className="small muted" style={{ marginTop: 0 }}>
+                      11th-ed data — highlighted abilities only so far; more to come.
+                    </p>
                   )}
-                  {info.enhancements.length > 0 && (
+                  <div style={{ marginBottom: 8 }}>
+                    <h3>Detachment rule</h3>
+                    <div className="card" style={{ marginBottom: 8 }}>
+                      <strong>{ov.rule.name}</strong>
+                      <div className="small" style={{ marginTop: 4 }}>{ov.rule.effect}</div>
+                    </div>
+                  </div>
+                  {ov.enhancements.length > 0 && (
                     <div style={{ marginBottom: 8 }}>
                       <h3>Enhancements</h3>
-                      {info.enhancements.map((e, i) => (
+                      {ov.enhancements.map((e, i) => (
                         <div key={i} className="card" style={{ marginBottom: 8 }}>
                           <div className="row">
                             <strong>{e.name}</strong>
-                            <span className="badge warn">{e.cost} pts</span>
+                            {e.pts && <span className="badge warn">{e.pts} pts</span>}
                           </div>
-                          <div className="small" style={{ marginTop: 4 }}>{e.description}</div>
+                          <div className="small" style={{ marginTop: 4 }}>{e.effect}</div>
                         </div>
                       ))}
                     </div>
                   )}
-                  <div>
-                    <h3 style={{ margin: 0 }}>
-                      Stratagems ({info.stratagems.filter((s) => match(s.name) || match(s.phase) || match(s.type)).length})
-                    </h3>
-                    {info.stratagems
-                      .filter((s) => match(s.name) || match(s.phase) || match(s.type))
-                      .map((s, i) => (
-                        <div key={i} className="card" style={{ marginBottom: 8, marginTop: 8 }}>
-                          <div className="row">
-                            <strong>{s.name}</strong>
-                            <span className="badge p1">{s.cpCost} CP</span>
-                            <span className="spacer" />
-                            <span className="small muted">{s.type}</span>
+                  {ov.stratagems.length > 0 && (
+                    <div>
+                      <h3 style={{ margin: 0 }}>Stratagems</h3>
+                      {ov.stratagems
+                        .filter((s) => match(s.name) || match(s.phase ?? '') || match(s.type ?? ''))
+                        .map((s, i) => (
+                          <div key={i} className="card" style={{ marginBottom: 8, marginTop: 8 }}>
+                            <div className="row">
+                              <strong>{s.name}</strong>
+                              <span className="badge p1">{s.cp} CP</span>
+                              <span className="spacer" />
+                              <span className="small muted">{s.type}</span>
+                            </div>
+                            <div className="small muted" style={{ margin: '2px 0' }}>
+                              {[s.turn, s.phase].filter(Boolean).join(' · ')}
+                            </div>
+                            <div className="small">{s.effect}</div>
                           </div>
-                          <div className="small muted" style={{ margin: '2px 0' }}>
-                            {[s.turn, s.phase].filter(Boolean).join(' · ')}
-                          </div>
-                          <div className="small">{s.description}</div>
+                        ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {!info && <p className="muted small">Loading…</p>}
+                  {info && 'error' in info && <div className="badge bad">{info.error}</div>}
+                  {info && !('error' in info) && (
+                    <>
+                      {info.abilities.length > 0 && (
+                        <div style={{ marginBottom: 8 }}>
+                          <h3>Detachment rule</h3>
+                          {info.abilities.map((a, i) => (
+                            <div key={i} className="card" style={{ marginBottom: 8 }}>
+                              <strong>{a.name}</strong>
+                              <div className="small" style={{ marginTop: 4 }}>{a.description}</div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                  </div>
+                      )}
+                      {info.enhancements.length > 0 && (
+                        <div style={{ marginBottom: 8 }}>
+                          <h3>Enhancements</h3>
+                          {info.enhancements.map((e, i) => (
+                            <div key={i} className="card" style={{ marginBottom: 8 }}>
+                              <div className="row">
+                                <strong>{e.name}</strong>
+                                <span className="badge warn">{e.cost} pts</span>
+                              </div>
+                              <div className="small" style={{ marginTop: 4 }}>{e.description}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div>
+                        <h3 style={{ margin: 0 }}>
+                          Stratagems ({info.stratagems.filter((s) => match(s.name) || match(s.phase) || match(s.type)).length})
+                        </h3>
+                        {info.stratagems
+                          .filter((s) => match(s.name) || match(s.phase) || match(s.type))
+                          .map((s, i) => (
+                            <div key={i} className="card" style={{ marginBottom: 8, marginTop: 8 }}>
+                              <div className="row">
+                                <strong>{s.name}</strong>
+                                <span className="badge p1">{s.cpCost} CP</span>
+                                <span className="spacer" />
+                                <span className="small muted">{s.type}</span>
+                              </div>
+                              <div className="small muted" style={{ margin: '2px 0' }}>
+                                {[s.turn, s.phase].filter(Boolean).join(' · ')}
+                              </div>
+                              <div className="small">{s.description}</div>
+                            </div>
+                          ))}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </section>
