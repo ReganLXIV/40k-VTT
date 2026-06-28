@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { DetachmentInfo } from '@shared/types';
-import { detachmentDP } from '../data/detachmentPoints';
-import { detachment11e } from '../data/detachments11e';
+import { dpFor, resolveDetachment, type DetSource } from '../data/detachmentEdits';
+import DetachmentEditor from './DetachmentEditor';
 
 // Detachment Points budget by game size (11th edition): Incursion (~1000 pts) = 2,
 // Strike Force (~2000 pts) = 3. Detachments themselves cost 1–3 DP each.
@@ -48,6 +48,8 @@ export default function DetachmentPanel({
   const [selected, setSelected] = useState<string[]>(() => loadSel(faction, detachments));
   const [infos, setInfos] = useState<Record<string, Info>>({});
   const [q, setQ] = useState('');
+  const [editing, setEditing] = useState<string | null>(null); // detachment being edited
+  const [, bump] = useState(0); // force re-resolve after a local edit is saved/reset
 
   // the faction's full detachment list (for the tickboxes)
   useEffect(() => {
@@ -84,12 +86,23 @@ export default function DetachmentPanel({
     });
 
   const budget = dpBudget(points);
-  const usedDP = selected.reduce((sum, n) => sum + (detachmentDP(faction, n) ?? 0), 0);
-  const anyUnknownDP = selected.some((n) => detachmentDP(faction, n) === undefined);
+  const usedDP = selected.reduce((sum, n) => sum + (dpFor(faction, n) ?? 0), 0);
+  const anyUnknownDP = selected.some((n) => dpFor(faction, n) === undefined);
   const overBudget = budget.dp != null && usedDP > budget.dp;
   const dpLabel = (name: string) => {
-    const dp = detachmentDP(faction, name);
+    const dp = dpFor(faction, name);
     return dp == null ? '? DP' : `${dp} DP`;
+  };
+  const sourceBadge = (s: DetSource) => {
+    if (s === 'edited') return <span className="badge p1">edited</span>;
+    if (s === '11e') return <span className="badge p2">11th ed</span>;
+    if (s === 'wahapedia')
+      return (
+        <span className="badge" title="From the Wahapedia import, which is 10th edition">
+          10th ed (Wahapedia)
+        </span>
+      );
+    return null;
   };
   const match = (s: string) => !q || s.toLowerCase().includes(q.toLowerCase());
   // show every faction detachment, plus any selected one not in the list (e.g. the parsed one)
@@ -145,40 +158,55 @@ export default function DetachmentPanel({
 
         {selected.map((name) => {
           const info = infos[name];
-          const ov = detachment11e(faction, name);
+          const apiInfo = info && !('error' in info) ? info : undefined;
+          const { source, content } = resolveDetachment(faction, name, apiInfo);
+          const loading = !info && source === 'none';
+          const strats = content.stratagems.filter(
+            (s) => match(s.name) || match(s.phase ?? '') || match(s.effect)
+          );
           return (
             <section key={name} style={{ marginTop: 14, borderTop: '1px solid #2a2a2a', paddingTop: 10 }}>
               <div className="row" style={{ margin: '0 0 8px', gap: 8, alignItems: 'center' }}>
                 <h2 style={{ margin: 0 }}>{name}</h2>
                 <span className="badge warn">{dpLabel(name)}</span>
-                {ov ? (
-                  <span className="badge p2">11th ed</span>
-                ) : (
-                  <span className="badge" title="From the Wahapedia import, which is 10th edition">
-                    10th ed (Wahapedia)
-                  </span>
+                {sourceBadge(source)}
+                <span className="spacer" />
+                {editing !== name && (
+                  <button className="small" onClick={() => setEditing(name)} title="Edit this detachment's rules for 11th edition">
+                    Edit
+                  </button>
                 )}
               </div>
 
-              {/* 11th-edition override: my own concise effect summaries */}
-              {ov ? (
+              {editing === name ? (
+                <DetachmentEditor
+                  faction={faction}
+                  name={name}
+                  apiInfo={apiInfo}
+                  onDone={() => {
+                    setEditing(null);
+                    bump((v) => v + 1);
+                  }}
+                />
+              ) : (
                 <>
-                  {ov.partial && (
-                    <p className="small muted" style={{ marginTop: 0 }}>
-                      11th-ed data — highlighted abilities only so far; more to come.
-                    </p>
+                  {loading && <p className="muted small">Loading…</p>}
+                  {info && 'error' in info && source === 'none' && (
+                    <div className="badge bad">{info.error}</div>
                   )}
-                  <div style={{ marginBottom: 8 }}>
-                    <h3>Detachment rule</h3>
-                    <div className="card" style={{ marginBottom: 8 }}>
-                      <strong>{ov.rule.name}</strong>
-                      <div className="small" style={{ marginTop: 4 }}>{ov.rule.effect}</div>
+                  {content.rule && (content.rule.name || content.rule.effect) && (
+                    <div style={{ marginBottom: 8 }}>
+                      <h3>Detachment rule</h3>
+                      <div className="card" style={{ marginBottom: 8 }}>
+                        <strong>{content.rule.name}</strong>
+                        <div className="small" style={{ marginTop: 4 }}>{content.rule.effect}</div>
+                      </div>
                     </div>
-                  </div>
-                  {ov.enhancements.length > 0 && (
+                  )}
+                  {content.enhancements.length > 0 && (
                     <div style={{ marginBottom: 8 }}>
                       <h3>Enhancements</h3>
-                      {ov.enhancements.map((e, i) => (
+                      {content.enhancements.map((e, i) => (
                         <div key={i} className="card" style={{ marginBottom: 8 }}>
                           <div className="row">
                             <strong>{e.name}</strong>
@@ -189,81 +217,22 @@ export default function DetachmentPanel({
                       ))}
                     </div>
                   )}
-                  {ov.stratagems.length > 0 && (
+                  {content.stratagems.length > 0 && (
                     <div>
-                      <h3 style={{ margin: 0 }}>Stratagems</h3>
-                      {ov.stratagems
-                        .filter((s) => match(s.name) || match(s.phase ?? '') || match(s.type ?? ''))
-                        .map((s, i) => (
-                          <div key={i} className="card" style={{ marginBottom: 8, marginTop: 8 }}>
-                            <div className="row">
-                              <strong>{s.name}</strong>
-                              <span className="badge p1">{s.cp} CP</span>
-                              <span className="spacer" />
-                              <span className="small muted">{s.type}</span>
-                            </div>
-                            <div className="small muted" style={{ margin: '2px 0' }}>
-                              {[s.turn, s.phase].filter(Boolean).join(' · ')}
-                            </div>
-                            <div className="small">{s.effect}</div>
+                      <h3 style={{ margin: 0 }}>Stratagems ({strats.length})</h3>
+                      {strats.map((s, i) => (
+                        <div key={i} className="card" style={{ marginBottom: 8, marginTop: 8 }}>
+                          <div className="row">
+                            <strong>{s.name}</strong>
+                            <span className="badge p1">{s.cp} CP</span>
                           </div>
-                        ))}
+                          <div className="small muted" style={{ margin: '2px 0' }}>
+                            {[s.turn, s.phase].filter(Boolean).join(' · ')}
+                          </div>
+                          <div className="small">{s.effect}</div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  {!info && <p className="muted small">Loading…</p>}
-                  {info && 'error' in info && <div className="badge bad">{info.error}</div>}
-                  {info && !('error' in info) && (
-                    <>
-                      {info.abilities.length > 0 && (
-                        <div style={{ marginBottom: 8 }}>
-                          <h3>Detachment rule</h3>
-                          {info.abilities.map((a, i) => (
-                            <div key={i} className="card" style={{ marginBottom: 8 }}>
-                              <strong>{a.name}</strong>
-                              <div className="small" style={{ marginTop: 4 }}>{a.description}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {info.enhancements.length > 0 && (
-                        <div style={{ marginBottom: 8 }}>
-                          <h3>Enhancements</h3>
-                          {info.enhancements.map((e, i) => (
-                            <div key={i} className="card" style={{ marginBottom: 8 }}>
-                              <div className="row">
-                                <strong>{e.name}</strong>
-                                <span className="badge warn">{e.cost} pts</span>
-                              </div>
-                              <div className="small" style={{ marginTop: 4 }}>{e.description}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div>
-                        <h3 style={{ margin: 0 }}>
-                          Stratagems ({info.stratagems.filter((s) => match(s.name) || match(s.phase) || match(s.type)).length})
-                        </h3>
-                        {info.stratagems
-                          .filter((s) => match(s.name) || match(s.phase) || match(s.type))
-                          .map((s, i) => (
-                            <div key={i} className="card" style={{ marginBottom: 8, marginTop: 8 }}>
-                              <div className="row">
-                                <strong>{s.name}</strong>
-                                <span className="badge p1">{s.cpCost} CP</span>
-                                <span className="spacer" />
-                                <span className="small muted">{s.type}</span>
-                              </div>
-                              <div className="small muted" style={{ margin: '2px 0' }}>
-                                {[s.turn, s.phase].filter(Boolean).join(' · ')}
-                              </div>
-                              <div className="small">{s.description}</div>
-                            </div>
-                          ))}
-                      </div>
-                    </>
                   )}
                 </>
               )}
