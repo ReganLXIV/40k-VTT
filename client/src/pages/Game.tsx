@@ -284,6 +284,50 @@ export default function Game() {
           )}
         </div>
 
+        {state.phase === 'Command' && mySlot && (
+          <div className="card">
+            <h3 style={{ marginTop: 0 }}>Command phase</h3>
+            <div className="row small" style={{ gap: 6, alignItems: 'center', marginBottom: 8 }}>
+              <span>CP — P1 {state.commandPoints.player1} · P2 {state.commandPoints.player2}</span>
+              <span className="spacer" />
+              <button onClick={() => intents.adjustCp(mySlot, 1)} title="Each player gains 1 CP at the start of their Command phase">
+                +1 CP (me)
+              </button>
+            </div>
+            {(() => {
+              const below = state.tokens.filter(
+                (t) =>
+                  t.owner === mySlot &&
+                  !t.status.includes('Destroyed') &&
+                  !t.status.includes('Battle-shocked') &&
+                  (t.modelsMax > 1
+                    ? t.modelsCurrent * 2 < t.modelsMax
+                    : t.woundsCurrent * 2 < t.woundsMax)
+              );
+              return (
+                <div className="small">
+                  <div className="muted" style={{ marginBottom: 4 }}>
+                    Battle-shock — your units below half strength:
+                  </div>
+                  {below.length === 0 ? (
+                    <span className="muted">None to test.</span>
+                  ) : (
+                    below.map((t) => (
+                      <div key={t.id} className="row" style={{ gap: 6, padding: '2px 0', alignItems: 'center' }}>
+                        <span>{t.label}</span>
+                        <span className="spacer" />
+                        <button onClick={() => intents.battleshock(t.id)} title="Roll 2D6 vs Leadership">
+                          Roll
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Objectives</h3>
           {(() => {
