@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { DetachmentInfo } from '@shared/types';
+import { detachmentDP } from '../data/detachmentPoints';
 
 // Detachment Points budget by game size (11th edition): Incursion (~1000 pts) = 2,
 // Strike Force (~2000 pts) = 3. Detachments themselves cost 1–3 DP each.
@@ -82,6 +83,13 @@ export default function DetachmentPanel({
     });
 
   const budget = dpBudget(points);
+  const usedDP = selected.reduce((sum, n) => sum + (detachmentDP(faction, n) ?? 0), 0);
+  const anyUnknownDP = selected.some((n) => detachmentDP(faction, n) === undefined);
+  const overBudget = budget.dp != null && usedDP > budget.dp;
+  const dpLabel = (name: string) => {
+    const dp = detachmentDP(faction, name);
+    return dp == null ? '? DP' : `${dp} DP`;
+  };
   const match = (s: string) => !q || s.toLowerCase().includes(q.toLowerCase());
   // show every faction detachment, plus any selected one not in the list (e.g. the parsed one)
   const options = [...new Set([...available, ...selected])];
@@ -97,8 +105,12 @@ export default function DetachmentPanel({
         </div>
 
         <div className="row small" style={{ marginTop: 6, gap: 8, flexWrap: 'wrap' }}>
-          <span className="badge warn">Detachment Points: {budget.dp ?? '—'} ({budget.size})</span>
+          <span className={`badge ${overBudget ? 'bad' : 'warn'}`}>
+            DP used: {usedDP}
+            {anyUnknownDP ? '+?' : ''} / {budget.dp ?? '—'} ({budget.size})
+          </span>
           <span className="muted">{selected.length} selected</span>
+          {overBudget && <span className="badge bad">over budget</span>}
         </div>
         <p className="small muted" style={{ marginTop: 4 }}>
           11th ed armies may take multiple detachments (each costs 1–3 DP). Tick the ones your
@@ -114,6 +126,8 @@ export default function DetachmentPanel({
               <label key={name} className="row small" style={{ gap: 8, padding: '2px 0', cursor: 'pointer' }}>
                 <input type="checkbox" checked={selected.includes(name)} onChange={() => toggle(name)} />
                 <span>{name}</span>
+                <span className="spacer" />
+                <span className="badge">{dpLabel(name)}</span>
               </label>
             ))
           )}
@@ -132,7 +146,10 @@ export default function DetachmentPanel({
           const info = infos[name];
           return (
             <section key={name} style={{ marginTop: 14, borderTop: '1px solid #2a2a2a', paddingTop: 10 }}>
-              <h2 style={{ margin: '0 0 8px' }}>{name}</h2>
+              <div className="row" style={{ margin: '0 0 8px', gap: 8, alignItems: 'center' }}>
+                <h2 style={{ margin: 0 }}>{name}</h2>
+                <span className="badge warn">{dpLabel(name)}</span>
+              </div>
               {!info && <p className="muted small">Loading…</p>}
               {info && 'error' in info && <div className="badge bad">{info.error}</div>}
               {info && !('error' in info) && (
