@@ -404,7 +404,8 @@ function drawToken(
   // text-layout radius (max extent), used for placing labels/pips around it.
   const shape = t.baseShape ?? 'circle';
   const eff = (((t.rotation ?? 0) + (v.flip ? 180 : 0)) * Math.PI) / 180;
-  let r: number;
+  let r: number; // max extent (for placing pips/labels outside the base)
+  let innerR: number; // inscribed radius (how much horizontal room the name has inside)
   ctx.save();
   ctx.translate(c.x, c.y);
   ctx.rotate(eff);
@@ -419,6 +420,7 @@ function drawToken(
     ctx.fill();
     ctx.stroke();
     r = Math.max(rx, ry);
+    innerR = Math.min(rx, ry);
   } else if (shape === 'rect' && t.baseW && t.baseH) {
     const hw = Math.max(6, (mmToInches(t.baseW) / 2) * v.scale);
     const hh = Math.max(6, (mmToInches(t.baseH) / 2) * v.scale);
@@ -427,22 +429,25 @@ function drawToken(
     ctx.fill();
     ctx.stroke();
     r = Math.max(hw, hh);
+    innerR = Math.min(hw, hh);
   } else {
     r = Math.max(7, (mmToInches(t.baseMm) / 2) * v.scale);
     ctx.beginPath();
     fullArc(ctx, 0, 0, r);
     ctx.fill();
     ctx.stroke();
+    innerR = r;
   }
   ctx.restore();
 
-  // label
+  // label — fit the name INSIDE the base: shrink the font, then progressively
+  // abbreviate (leading words to initials) until it fits the base width.
   ctx.fillStyle = '#0a0a0a';
-  ctx.font = `bold ${Math.max(9, Math.min(13, r * 0.7))}px system-ui`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const short = t.label.length > 10 ? t.label.slice(0, 9) + '…' : t.label;
-  ctx.fillText(short, c.x, c.y);
+  const fit = fitLabel(ctx, t.label, innerR * 1.7, Math.min(13, innerR * 0.72), 6);
+  ctx.font = `bold ${fit.font}px system-ui`;
+  ctx.fillText(fit.text, c.x, c.y);
 
   // wounds pip
   ctx.font = `${Math.max(8, r * 0.5)}px system-ui`;
@@ -662,6 +667,55 @@ function drawDeployAid(
       if (neighbours < need) markRing(ctx, v, t, '#ffa94d', 'coherency', 9, true);
     }
   }
+}
+
+// Progressive abbreviations of a model label, least-abbreviated first. A trailing
+// model number is preserved. "Custodian Guard 3" → ["Custodian Guard 3",
+// "C Guard 3", "CG3"]; single long words also get a clipped form.
+function labelCandidates(label: string): string[] {
+  const parts = label.trim().split(/\s+/);
+  let num = '';
+  if (parts.length > 1 && /^\d+$/.test(parts[parts.length - 1])) num = parts.pop() as string;
+  const words = parts.filter(Boolean);
+  const out = [label];
+  if (words.length >= 2) {
+    // initial every word except the last (most distinguishing) one
+    const lead = words
+      .map((w, i) => (i < words.length - 1 ? (w[0] ?? '').toUpperCase() : w))
+      .join(' ');
+    out.push((num ? `${lead} ${num}` : lead).trim());
+    // pure acronym
+    out.push(words.map((w) => (w[0] ?? '').toUpperCase()).join('') + num);
+  } else if (words[0] && words[0].length > 5) {
+    out.push(words[0].slice(0, 4) + (num ? ` ${num}` : ''));
+  }
+  return [...new Set(out)];
+}
+
+// Largest {text, font} that fits within `fitW` px: try each candidate (full →
+// abbreviated) at fonts from maxFont down to minFont; fall back to a hard clip.
+function fitLabel(
+  ctx: CanvasRenderingContext2D,
+  label: string,
+  fitW: number,
+  maxFont: number,
+  minFont: number
+): { text: string; font: number } {
+  const top = Math.max(minFont, maxFont);
+  const widthOf = (s: string, f: number) => {
+    ctx.font = `bold ${f}px system-ui`;
+    return ctx.measureText(s).width;
+  };
+  for (const cand of labelCandidates(label)) {
+    for (let f = top; f >= minFont; f -= 1) {
+      if (widthOf(cand, f) <= fitW) return { text: cand, font: f };
+    }
+  }
+  // nothing fits even abbreviated — clip the acronym at the smallest font
+  const cands = labelCandidates(label);
+  let t = cands[cands.length - 1];
+  while (t.length > 1 && widthOf(`${t}…`, minFont) > fitW) t = t.slice(0, -1);
+  return { text: t.length < (cands[cands.length - 1] ?? '').length ? `${t}…` : t, font: minFont };
 }
 
 function hexA(hex: string, a: number): string {
