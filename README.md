@@ -67,14 +67,25 @@ npm run ingest
 
 The ingest script is **column-name driven** (maps fields by header, tolerant of
 column-order drift), strips HTML from descriptions, resolves abilities linked by
-`ability_id` to `Abilities.csv`, filters to the Xenos factions (Aeldari, Drukhari,
-Genestealer Cults, Leagues of Votann, Necrons, Orks, T'au Empire, Tyranids), and
-rebuilds `data/stats.sqlite` from scratch. It prints per-faction counts and warns
-about any datasheet missing model profiles or weapons.
+`ability_id` to `Abilities.csv`, and rebuilds `data/stats.sqlite` from scratch. By
+default it ingests **all factions**; set `INGEST_XENOS_ONLY=1` to limit it to the
+Xenos factions. It prints per-faction counts and warns about any datasheet missing
+model profiles or weapons.
 
-Adding Imperium/Chaos later is **data-only**: drop their faction names into the
-`XENOS` set (or remove the filter) in `scripts/ingest-wahapedia.ts` and re-ingest.
-No schema or code change needed.
+### Refreshing to a new edition
+
+Detachments, stratagems and enhancements all come from this import, so updating to
+a new edition (e.g. 11th) is **data-only, one command**:
+
+1. Download the latest Wahapedia CSV export and overwrite the files in
+   `data/wahapedia/`.
+2. Stop the dev server (Windows locks `stats.sqlite`).
+3. `npm run ingest` — rebuilds the DB with the new detachments/stratagems/
+   enhancements for every faction. No schema or code change needed.
+
+Per-detachment **Detachment Points** (not in the CSV export) are kept separately
+in `client/src/data/detachmentPoints.ts`, and any hand-entered 11th-ed detachment
+overrides live in `client/src/data/detachments11e.ts`.
 
 ---
 

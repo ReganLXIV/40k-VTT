@@ -25,7 +25,8 @@ import type { Ability, ModelProfile, Weapon } from '../shared/types.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CSV_DIR = path.resolve(__dirname, '../data/wahapedia');
 
-// v1 scope: all Xenos factions (match by name, case-insensitive).
+// Default ingest is ALL factions. Set INGEST_XENOS_ONLY=1 to restrict to this
+// Xenos subset (match by name, case-insensitive).
 const XENOS = new Set(
   [
     'Aeldari',
