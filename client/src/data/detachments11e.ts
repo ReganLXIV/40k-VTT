@@ -58,28 +58,49 @@ export const DETACHMENTS_11E: Record<string, Record<string, Detachment11e>> = {
       ],
     },
     'More Dakka!': {
-      partial: true,
       rule: {
         name: 'Dakka! Dakka! Dakka!',
         effect:
-          'Orks Infantry ranged weapons gain [Assault]. While your Waaagh! is active, in your Shooting phase they also gain [Sustained Hits 1].',
+          'Friendly Orks Infantry units’ ranged attacks gain [Assault]. In your Shooting phase, while your Waaagh! is active, they also gain [Sustained Hits 1].',
       },
       enhancements: [
         {
           name: 'Dead Shiny Shootas',
           pts: '',
           effect:
-            "An Orks Infantry unit's ranged weapons gain [Rapid Fire 1] (if they already have Rapid Fire, increase it by 1).",
+            "Orks Infantry unit only. Its ranged attacks gain [Rapid Fire 1] — or if they already have Rapid Fire, increase that value by 1.",
+        },
+        {
+          name: 'Da Gobshot Thunderbuss',
+          pts: '',
+          effect:
+            'Orks Infantry model only. Its ranged attacks gain [Devastating Wounds] and [Hazardous].',
         },
       ],
       stratagems: [
+        {
+          name: 'Long, Uncontrolled Bursts',
+          cp: '1',
+          turn: 'Your turn',
+          phase: 'Shooting',
+          effect:
+            'When a friendly Orks Infantry unit is selected to shoot, its ranged attacks gain [Ignores Cover].',
+        },
+        {
+          name: 'Speshul Shells',
+          cp: '1',
+          turn: 'Your turn',
+          phase: 'Shooting',
+          effect:
+            'When a friendly Orks Infantry unit is selected to shoot, its ranged attacks have +1 AP against targets within 9".',
+        },
         {
           name: 'Call Dat Dakka?',
           cp: '1',
           turn: "Opponent's turn",
           phase: 'Shooting',
           effect:
-            'After an enemy unit shoots, one of your Orks Infantry units fires back as snap shots, targeting only that unit.',
+            'After an enemy unit that shot a friendly Orks Infantry unit finishes shooting, that unit shoots back using snap shooting, and may only target that enemy unit.',
         },
       ],
     },
