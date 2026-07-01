@@ -132,24 +132,69 @@ const pickCsv = (row: Record<string, string>, ...keys: string[]): string => {
   return '';
 };
 
+function readWahaCsv(file: string): Record<string, string>[] {
+  const full = path.join(WAHA_DIR, file);
+  if (!fs.existsSync(full)) return [];
+  return parse(fs.readFileSync(full, 'utf-8').replace(/^﻿/, ''), {
+    delimiter: '|', columns: true, skip_empty_lines: true,
+    relax_quotes: true, relax_column_count: true, trim: true,
+  });
+}
+
+// Plain name normaliser (keeps digits) for datasheet/model matching.
+const normNm = (s: string): string => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
 function loadWahaAbilities(): Map<string, string> {
   const map = new Map<string, string>();
-  const read = (file: string): Record<string, string>[] => {
-    const full = path.join(WAHA_DIR, file);
-    if (!fs.existsSync(full)) return [];
-    return parse(fs.readFileSync(full, 'utf-8').replace(/^﻿/, ''), {
-      delimiter: '|', columns: true, skip_empty_lines: true,
-      relax_quotes: true, relax_column_count: true, trim: true,
-    });
-  };
   for (const file of ['Abilities.csv', 'Datasheets_abilities.csv']) {
-    for (const r of read(file)) {
+    for (const r of readWahaCsv(file)) {
       const name = pickCsv(r, 'name');
       const desc = stripHtml(pickCsv(r, 'description'));
       if (!name || !desc) continue;
       const k = normAbility(name);
       if (k && !map.has(k)) map.set(k, desc);
     }
+  }
+  return map;
+}
+
+type WahaBase = { shape: BaseShape; mm: number; w: number; h: number };
+
+// Parse a Wahapedia base_size string: "25mm" -> circle, "120 x 92mm" -> oval.
+// Returns null for hull / "Use model" / unparseable (caller keeps the 40kdc base).
+function parseWahaBase(s: string): WahaBase | null {
+  const t = (s || '').toLowerCase();
+  const oval = t.match(/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)/);
+  if (oval) {
+    const w = parseFloat(oval[1]), h = parseFloat(oval[2]);
+    return { shape: 'oval', mm: Math.max(w, h), w, h };
+  }
+  const circ = t.match(/(\d+(?:\.\d+)?)\s*mm/);
+  if (circ) {
+    const d = parseFloat(circ[1]);
+    return { shape: 'circle', mm: d, w: d, h: d };
+  }
+  return null;
+}
+
+// Per-model base sizes from Wahapedia, keyed by "<datasheet>|<model>". 40kdc only
+// carries a single unit-level base, so companion models that share a datasheet but
+// sit on a different base (e.g. Makari on Ghazghkull's sheet) come out wrong; this
+// restores the authoritative per-model size for multi-profile units.
+function loadWahaModelBases(): Map<string, WahaBase> {
+  const map = new Map<string, WahaBase>();
+  const dsName = new Map<string, string>();
+  for (const r of readWahaCsv('Datasheets.csv')) {
+    const id = pickCsv(r, 'id');
+    const name = pickCsv(r, 'name');
+    if (id && name) dsName.set(id, name);
+  }
+  for (const r of readWahaCsv('Datasheets_models.csv')) {
+    const ds = dsName.get(pickCsv(r, 'datasheet_id'));
+    const model = pickCsv(r, 'name', 'model_name');
+    const base = parseWahaBase(pickCsv(r, 'base_size', 'base_size_descr'));
+    if (!ds || !model || !base) continue;
+    map.set(`${normNm(ds)}|${normNm(model)}`, base);
   }
   return map;
 }
@@ -191,8 +236,9 @@ async function main() {
   const coreAb = (await getJson<Ability40[]>(RAW('data/enrichment/_core/abilities.json'))) ?? [];
   for (const a of coreAb) if (a.ability_id) abilityName.set(a.ability_id, a.name);
 
-  // optional human-readable effect text from a local Wahapedia export
+  // optional human-readable effect text + per-model base sizes from a local Wahapedia export
   const wahaText = loadWahaAbilities();
+  const wahaModelBase = loadWahaModelBases();
   let abBackfilled = 0;
   let abTotal = 0;
   console.log(
@@ -252,20 +298,30 @@ async function main() {
       const wMax = Math.max(1, ...u.profiles.map((p) => p.W || 1));
       const b = baseInfo(u.base_size_mm, u.name, wMax);
 
-      const profiles: ModelProfile[] = u.profiles.map((p) => ({
-        modelName: p.name || u.name,
-        m: p.M ?? 0,
-        t: p.T ?? 0,
-        sv: p.Sv != null ? `${p.Sv}+` : '-',
-        invSv: p.invuln_sv != null ? `${p.invuln_sv}+` : '',
-        w: p.W ?? 1,
-        ld: p.Ld != null ? `${p.Ld}+` : '-',
-        oc: p.OC ?? 0,
-        baseMm: b.mm,
-        baseShape: b.shape,
-        baseW: b.w,
-        baseH: b.h,
-      }));
+      // Multi-profile units can mix base sizes (Ghazghkull 80mm + Makari 25mm) but
+      // 40kdc only gives one unit base, so pull each model's real base from Wahapedia.
+      const multiProfile = u.profiles.length > 1;
+      const profiles: ModelProfile[] = u.profiles.map((p) => {
+        let pb: { shape: BaseShape; mm: number; w: number; h: number } = b;
+        if (multiProfile) {
+          const wb = wahaModelBase.get(`${normNm(u.name)}|${normNm(p.name || u.name)}`);
+          if (wb) pb = wb;
+        }
+        return {
+          modelName: p.name || u.name,
+          m: p.M ?? 0,
+          t: p.T ?? 0,
+          sv: p.Sv != null ? `${p.Sv}+` : '-',
+          invSv: p.invuln_sv != null ? `${p.invuln_sv}+` : '',
+          w: p.W ?? 1,
+          ld: p.Ld != null ? `${p.Ld}+` : '-',
+          oc: p.OC ?? 0,
+          baseMm: pb.mm,
+          baseShape: pb.shape,
+          baseW: pb.w,
+          baseH: pb.h,
+        };
+      });
 
       const wpns: Weapon[] = [];
       for (const wid of u.weapon_ids ?? []) {
