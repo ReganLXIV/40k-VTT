@@ -211,30 +211,59 @@ export const DETACHMENTS_11E: Record<string, Record<string, Detachment11e>> = {
         { name: 'Speshul Ammo', cp: '1', turn: 'Your turn', phase: 'Shooting', effect: 'The unit’s ranged weapons gain [Anti-Monster 4+] and [Anti-Vehicle 4+].' },
       ],
     },
-    'Taktikal Brigade': {
-      partial: true,
+    'Kaptin Killers': {
       rule: {
-        name: "Lissen 'Ere",
+        name: 'Comin’ Through',
         effect:
-          'Stormboyz count as Battleline. Your Boyz, Kommandos and Stormboyz can still perform Actions in a turn they Advanced or Fell Back.',
+          'In your Movement phase, Orks units auto-pass Desperate Escape tests, and their Normal/Advance/Fall Back moves can pass through enemy models with a lower Toughness as if they weren’t there.',
       },
       enhancements: [
-        {
-          name: 'Slippery Git',
-          pts: '',
-          effect:
-            'Infantry Warboss (not in Mega Armour) gains Infiltrators and Stealth.',
-        },
+        { name: 'Tellyporta', pts: '0', effect: 'A chosen Meganobz unit gains Deep Strike for the rest of the battle.' },
+        { name: 'Gnasher Squig Crates', pts: '0', effect: 'Warboss. Command phase: a non-Battle-shocked Nobz/Meganobz unit within 6" of the bearer and in range of an objective secures it if no enemies are in range of that objective.' },
       ],
       stratagems: [
-        {
-          name: 'Ded Sneaky',
-          cp: '1',
-          turn: "Opponent's turn",
-          phase: 'Fight',
-          effect:
-            'At the end of the enemy Fight phase, pull one of your unengaged Kommandos or Stormboyz units into Strategic Reserves.',
-        },
+        { name: 'Cornered and Krumped', cp: '1', turn: 'Opponent’s turn', phase: 'Movement', effect: 'When an enemy Falls Back, a chosen unit fights it immediately, hitting only on unmodified 6s.' },
+        { name: 'Pit Fighter', cp: '1', turn: 'Your turn', phase: 'Charge', effect: 'A Warboss can charge in a turn it Fell Back.' },
+        { name: 'Loot on the Move', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'After the unit opens a Hatchway it stays open, and incoming attacks have -1 AP until end of turn. (Boarding-action rule.)' },
+        { name: 'Pile Through', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'After opening a Hatchway, the unit gains Fights First until end of turn. (Boarding-action rule.)' },
+      ],
+    },
+    'Ramship Raiders': {
+      rule: {
+        name: 'Belligerent Boarders',
+        effect:
+          'Attacks against your Orks units (except Grots) whose Strength beats the target’s Toughness subtract 1 from their Wound rolls.',
+      },
+      enhancements: [
+        { name: 'Living Battering Ram', pts: '0', effect: 'The opponent can’t contest the bearer operating a closed Hatchway; when the bearer opens one, enemy units within 6" wholly on the far side take a Battle-shock test. (Boarding-action rule.)' },
+        { name: 'Scarred Brute', pts: '0', effect: 'The bearer gains Feel No Pain 5+.' },
+      ],
+      stratagems: [
+        { name: 'Enraged Rush', cp: '1', turn: 'Opponent’s turn', phase: 'Shooting', effect: 'A Boyz unit moves toward the unit that shot it, ending as close as possible.' },
+        { name: 'Pile Through', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'After opening a Hatchway, the unit gains Fights First until end of turn. (Boarding-action rule.)' },
+        { name: 'Ramboyz Rampage', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'A Boyz unit adds 6" to its Move and can charge after Advancing without rolling.' },
+        { name: 'Eager to Fight', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'A unit that was just set up can make an Advance move.' },
+      ],
+    },
+    'Taktikal Brigade': {
+      rule: {
+        name: 'Lissen ’Ere',
+        effect:
+          'Once per battle round a Boss Snikrot, Mek or Warboss can issue a Taktik to a friendly Orks unit within 6" (make a Leadership test — on a fail the target takes 1 mortal wound). A unit can receive only one Taktik per round and can’t be Battle-shocked. Taktiks: Get Stuck In (re-roll Charges); Get On Wiv It (+1 melee Strength); Sneaky Stalkin’ (Infantry/Mounted gain Stealth + Benefit of Cover); Shoota Drills (+1 to Hit with ranged attacks). Stormboyz gain Battleline.',
+      },
+      enhancements: [
+        { name: 'Skwad Leader', pts: '15', effect: 'Infantry Warboss. Can attach to a Kommandos unit at setup, and gains Infiltrators and Stealth while leading it.' },
+        { name: 'Mek Kaptin', pts: '45', effect: 'Big Mek. Can attach to Flash Gitz; that unit re-rolls ranged Hit rolls.' },
+        { name: 'Mork’s Kunnin’', pts: '15', effect: 'Redeploy up to three Orks units after deployment; may exceed the Strategic Reserves limit.' },
+        { name: 'Gob Boomer', pts: '10', effect: 'Warboss or Mek. Issue Taktiks to units within 18" instead of 6".' },
+      ],
+      stratagems: [
+        { name: 'Krunchin’ Descent', cp: '1', turn: 'Your turn', phase: 'Charge', effect: 'After a Stormboyz unit charges, roll a D6 per model in Engagement Range — each 4+ deals 1 mortal wound (max 6).' },
+        { name: 'Fight Proppa', cp: '1', turn: 'Your turn', phase: 'Fight', effect: 'Give an Infantry/Mounted unit’s melee weapons [Sustained Hits 1] or [Lethal Hits] this phase.' },
+        { name: 'Ded Sneaky', cp: '1', turn: 'Opponent’s turn', phase: 'Fight', effect: 'At the end of the enemy Fight phase, put one unengaged Kommandos or Stormboyz unit into Strategic Reserves.' },
+        { name: 'On To Da Next', cp: '1', turn: 'Opponent’s turn', phase: 'Movement', effect: 'When an enemy Falls Back, an Orks unit in Engagement Range makes a 6" Normal move.' },
+        { name: 'Taktikal Retreat', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'A unit that Fell Back can still shoot and declare a charge this turn.' },
+        { name: 'Dat’s Ours', cp: '1', turn: 'Your turn', phase: 'Command', effect: 'An Orks unit in Engagement Range gains +1 Objective Control until your next Command phase.' },
       ],
     },
     'More Dakka!': {
