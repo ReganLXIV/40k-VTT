@@ -96,15 +96,18 @@ a { color: var(--accent); }
   padding: 10px;
   background: var(--panel);
 }
-.left-panel { border-right: 1px solid var(--border); }
-.right-panel { border-left: 1px solid var(--border); }
-/* Collapsed left panel: give the whole width to the board. */
+.left-panel { border-right: 1px solid var(--border); grid-column: 1; grid-row: 2; }
+.right-panel { border-left: 1px solid var(--border); grid-column: 3; grid-row: 2; }
+/* Collapsed left panel: hide it and give its width to the board. Panels are
+   pinned to explicit columns so hiding the left one never shifts the others. */
 .game.left-collapsed { grid-template-columns: 0 1fr 320px; }
 .game.left-collapsed .left-panel { display: none; }
 .board-wrap {
   position: relative;
   overflow: hidden;
   background: #0c0f13;
+  grid-column: 2;
+  grid-row: 2;
 }
 .board-wrap canvas { display: block; }
 
