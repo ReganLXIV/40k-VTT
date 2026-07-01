@@ -91,6 +91,66 @@ export const DETACHMENTS_11E: Record<string, Record<string, Detachment11e>> = {
         { name: 'Superfuelled Boiler', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'A Walker that Advanced re-rolls the Advance and its ranged weapons gain Assault.' },
       ],
     },
+    'War Horde': {
+      rule: {
+        name: 'Get Stuck In',
+        effect: 'Melee weapons carried by Orks models gain [Sustained Hits 1].',
+      },
+      enhancements: [
+        { name: 'Follow Me Ladz', pts: '25', effect: '+2" to the Move characteristic of the bearer’s unit.' },
+        { name: 'Headwoppa’s Killchoppa', pts: '20', effect: 'The bearer’s melee weapons (except Extra Attacks weapons) gain [Devastating Wounds].' },
+        { name: 'Kunnin’ But Brutal', pts: '15', effect: 'The bearer’s unit can shoot and declare a charge in a turn it Fell Back.' },
+        { name: 'Supa-Cybork Body', pts: '15', effect: 'The bearer gains Feel No Pain 4+.' },
+      ],
+      stratagems: [
+        { name: '’Ere We Go', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'An Orks Infantry unit gets +2 to Advance and Charge rolls this turn.' },
+        { name: 'Mob Rule', cp: '1', turn: 'Your turn', phase: 'Command', effect: 'A Battle-shocked Orks Infantry unit within 6" of a friendly Mob unit (10+ models) stops being Battle-shocked.' },
+        { name: '’Ard As Nails', cp: '1', phase: 'Shooting / Fight', effect: 'An Orks unit subtracts 1 from incoming Wound rolls this phase.' },
+        { name: 'Unbridled Carnage', cp: '1', turn: 'Your turn', phase: 'Fight', effect: 'An Orks unit scores Critical Hits on unmodified 5+ in melee this phase.' },
+        { name: 'Orks Is Never Beaten', cp: '2', phase: 'Fight', effect: 'Models destroyed in an Orks unit that hasn’t fought yet can still fight before being removed.' },
+        { name: 'Careen!', cp: '1', phase: 'Any', effect: 'When an Orks Vehicle with Deadly Demise rolls a 6, it can make a Normal or Fall Back move before Deadly Demise resolves.' },
+      ],
+    },
+    'Da Big Hunt': {
+      rule: {
+        name: 'Da Hunt Is On',
+        effect: 'At the start of your Command phase, pick an enemy Monster/Vehicle/Character unit as Prey until your next Command phase. Beast Snagga units re-roll Charge rolls against the Prey, and their attacks against it gain +1 AP.',
+      },
+      enhancements: [
+        { name: 'Glory Hog', pts: '30', effect: 'A Beastboss on Squigosaur’s unit gains Scouts 9".' },
+        { name: 'Proper Killy', pts: '15', effect: '+1 Damage on the bearer’s melee weapons.' },
+        { name: 'Skrag Every Stash!', pts: '25', effect: 'While the bearer is within range of an objective it controls, that objective stays yours with no models on it until the enemy takes it.' },
+        { name: 'Surly as a Squiggoth', pts: '20', effect: 'Attacks whose Strength beats the bearer’s unit’s Toughness subtract 1 from their Wound rolls.' },
+      ],
+      stratagems: [
+        { name: 'Stalkin’ Taktiks', cp: '1', turn: 'Opponent’s turn', phase: 'Shooting', effect: 'A Beast Snagga unit gains Benefit of Cover; Infantry also gain Stealth.' },
+        { name: 'Drag It Down', cp: '1', turn: 'Your turn', phase: 'Fight', effect: 'A Beast Snagga unit’s melee weapons gain [Sustained Hits 1], and Critical Hits on 5+ against the Prey.' },
+        { name: 'Dat One’s Even Bigga!', cp: '1', turn: 'Your turn', phase: 'Charge', effect: 'A Beast Snagga unit can charge after Advancing or Falling Back, and re-rolls Charge rolls against the Prey.' },
+        { name: 'Instinctive Hunters', cp: '1', phase: 'Fight', effect: 'At the end of the Fight phase, a Beast Snagga unit not in Engagement Range goes into Strategic Reserves.' },
+        { name: 'Where D’ya Fink You’re Going?', cp: '1', turn: 'Opponent’s turn', phase: 'Movement', effect: 'When an enemy Falls Back near a Beast Snagga unit within 6", that unit makes a Normal move.' },
+        { name: 'Unstoppable Momentum', cp: '1', turn: 'Your turn', phase: 'Charge', effect: 'After a Mounted Beast Snagga charge, roll a D6 per model at a target — each 4+ deals 1 mortal wound (max 6); roll 3 extra dice if it is the Prey.' },
+      ],
+    },
+    'Freebooter Krew': {
+      rule: {
+        name: 'Here Be Loot',
+        effect: 'At the start of your Command phase, pick an objective as the loot objective until your next Command phase. Orks Infantry/Mounted/Walker units gain [Sustained Hits 1] while they or their target are within range of it.',
+      },
+      enhancements: [
+        { name: 'Da Kaptin', pts: '10', effect: 'Warboss. Once per battle round, a Battle-shocked Orks unit within 12" takes D3 mortal wounds and stops being Battle-shocked.' },
+        { name: 'Git-spotter Squig', pts: '20', effect: 'The bearer’s ranged weapons gain [Ignores Cover].' },
+        { name: 'Bionik Workshop', pts: '15', effect: 'Big Mek or Painboy. Roll a D3 at the start of the battle: 1 = +2" Move, 2 = +1 melee Strength, 3 = +1 melee WS.' },
+        { name: 'Razgit’s Magik Map', pts: '25', effect: 'Redeploy up to three Orks Infantry units after deployment; may exceed the Strategic Reserves limit.' },
+      ],
+      stratagems: [
+        { name: 'Boardin’ Rush', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'An Orks unit adds 6" to its Move this phase (no Advance roll).' },
+        { name: 'Bash and Grab', cp: '1', turn: 'Your turn', phase: 'Fight', effect: 'An Orks unit re-rolls Wound rolls against enemies within range of the loot objective.' },
+        { name: 'Rolling Loot-heap', cp: '1', turn: 'Your turn', phase: 'Shooting', effect: 'A Flash Gitz unit’s weapons gain [Anti-Vehicle 4+] this phase.' },
+        { name: 'Grab and Bash', cp: '1', turn: 'Your turn', phase: 'Command', effect: 'An Orks unit (not Gretchin) within range of the loot objective counts as having a Waaagh! active until your next Command phase.' },
+        { name: 'Deck Fraggers', cp: '1', turn: 'Your turn', phase: 'Shooting', effect: 'An Orks unit’s ranged weapons gain [Blast] against Infantry this phase.' },
+        { name: 'Krump and Run', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'An Orks unit in Engagement Range of an enemy that Fell Back makes a Normal move up to 6".' },
+      ],
+    },
     'Taktikal Brigade': {
       partial: true,
       rule: {
