@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { DetachmentInfo } from '@shared/types';
 import { dpFor, resolveDetachment, type DetSource } from '../data/detachmentEdits';
-import { validDetachmentSet } from '../data/detachmentValid';
 import DetachmentEditor from './DetachmentEditor';
 
 // Detachment Points budget by game size (11th edition): Incursion (~1000 pts) = 2,
@@ -106,13 +105,10 @@ export default function DetachmentPanel({
     return null;
   };
   const match = (s: string) => !q || s.toLowerCase().includes(q.toLowerCase());
-  // Show every faction detachment, plus any selected one not in the list. When a
-  // faction has a valid-detachment allowlist, drop the Boarding Actions / artifact
-  // entries the Wahapedia import carries that aren't real matched-play detachments.
-  const allow = validDetachmentSet(faction);
-  const options = [...new Set([...available, ...selected])].filter(
-    (n) => !allow || allow.has(n.toLowerCase())
-  );
+  // Boarding Actions detachments and stray artifacts are filtered out at ingest
+  // time (see scripts/ingest-wahapedia.ts), so the API already returns only real
+  // matched-play detachments here.
+  const options = [...new Set([...available, ...selected])];
 
   return (
     <div className="modal-overlay" onClick={onClose}>

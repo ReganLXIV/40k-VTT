@@ -351,10 +351,30 @@ function main() {
   const factionNameById = new Map<string, string>();
   for (const f of wantedFactions.values()) factionNameById.set(f.id, f.name);
 
+  // Real matched-play detachments only. Detachments.csv tags Boarding Actions
+  // detachments via its `type` column; standard codex detachments have an empty
+  // type. Build the set of valid (faction, detachment) pairs so we drop
+  // boarding-action rules and stray artifacts (e.g. an "Army Rules" pseudo-
+  // detachment) from the stratagem/ability/enhancement data below.
+  const validDet = new Set<string>();
+  for (const r of readCsv('Detachments.csv')) {
+    const fid = pick(r, 'faction_id');
+    if (!wantedFactions.has(fid)) continue;
+    if (pick(r, 'type') === 'Boarding Actions') continue;
+    const name = pick(r, 'name');
+    if (name) validDet.add(`${fid}|${name.toLowerCase().trim()}`);
+  }
+  // Keep a row if it has no detachment (core/army-wide) or names a valid one.
+  const detOk = (fid: string, det: string) => {
+    const d = (det || '').toLowerCase().trim();
+    return d === '' || validDet.has(`${fid}|${d}`);
+  };
+
   const stratagems: StratagemRecord[] = [];
   for (const r of readCsv('Stratagems.csv')) {
     const fid = pick(r, 'faction_id');
     if (!wantedFactions.has(fid)) continue;
+    if (!detOk(fid, pick(r, 'detachment'))) continue;
     stratagems.push({
       factionName: factionNameById.get(fid)!,
       detachment: pick(r, 'detachment'),
@@ -371,6 +391,7 @@ function main() {
   for (const r of readCsv('Detachment_abilities.csv')) {
     const fid = pick(r, 'faction_id');
     if (!wantedFactions.has(fid)) continue;
+    if (!detOk(fid, pick(r, 'detachment'))) continue;
     detachmentAbilities.push({
       factionName: factionNameById.get(fid)!,
       detachment: pick(r, 'detachment'),
@@ -383,6 +404,7 @@ function main() {
   for (const r of readCsv('Enhancements.csv')) {
     const fid = pick(r, 'faction_id');
     if (!wantedFactions.has(fid)) continue;
+    if (!detOk(fid, pick(r, 'detachment'))) continue;
     enhancements.push({
       factionName: factionNameById.get(fid)!,
       detachment: pick(r, 'detachment'),
