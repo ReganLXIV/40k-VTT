@@ -45,7 +45,19 @@ function AbilitiesBlock({ unit }: { unit: HydratedUnit }) {
         <>
           <div className="small muted">Abilities</div>
           {detailed.map((a, i) => (
-            <div key={i} className="small"><strong>{abilityLabel(a)}.</strong> {a.description}</div>
+            <div key={i} className="small">
+              <strong>{abilityLabel(a)}.</strong>{' '}
+              {a.textEdition === '10e' && a.description && (
+                <span
+                  className="badge"
+                  style={{ fontSize: 9, padding: '0 3px', marginRight: 4, opacity: 0.7 }}
+                  title="Effect text is 10th-edition wording (from the Wahapedia import) and may have changed in 11th"
+                >
+                  10e
+                </span>
+              )}
+              {a.description}
+            </div>
           ))}
         </>
       )}

@@ -24,8 +24,15 @@ import {
   type FactionRecord,
   type StratagemRecord,
 } from './dbBuild.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parse } from 'csv-parse/sync';
 import type { Ability, BaseShape, ModelProfile, Weapon } from '../shared/types.js';
 import { hullRect } from './hullSizes.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const WAHA_DIR = path.resolve(__dirname, '../data/wahapedia');
 
 const REPO = 'wn-mitch/40kdc-data';
 const RAW = (p: string) => `https://raw.githubusercontent.com/${REPO}/main/${p}`;
@@ -82,6 +89,71 @@ const humanize = (id: string): string =>
     .map((w) => (/^\d/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1)))
     .join(' ');
 
+// ---- ability text backfill from a local Wahapedia export (optional) ----
+// 40kdc encodes ability effects as a DSL, not readable prose. If the user has a
+// Wahapedia CSV export in data/wahapedia/, we borrow the human-readable effect
+// text for any ability whose name matches (Wahapedia is 10th ed, so this is
+// best-effort — abilities new in 11th simply stay blank until Wahapedia updates).
+const stripHtml = (s: string): string =>
+  (s || '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/(p|div|li)>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&#?\w+;/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+// Normalise an ability name for matching: drop parentheticals, dice/number
+// parameters and punctuation ("Feel No Pain 5+" ~ "Deadly Demise D3" -> stem).
+const normAbility = (n: string): string =>
+  (n || '')
+    .toLowerCase()
+    .replace(/\(.*?\)/g, ' ')
+    .replace(/\bd\d+\b/g, ' ')
+    .replace(/\d+\+?/g, ' ')
+    .replace(/[^a-z ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+// Universal keyword-style abilities render as compact tags, not paragraphs.
+const CORE_ABILITIES = new Set(
+  [
+    'leader', 'scouts', 'deep strike', 'infiltrators', 'lone operative', 'stealth',
+    'fights first', 'feel no pain', 'deadly demise', 'firing deck', 'benefit of cover',
+  ]
+);
+
+const pickCsv = (row: Record<string, string>, ...keys: string[]): string => {
+  const lower: Record<string, string> = {};
+  for (const k of Object.keys(row)) lower[k.toLowerCase()] = row[k];
+  for (const k of keys) if (lower[k.toLowerCase()]) return lower[k.toLowerCase()];
+  return '';
+};
+
+function loadWahaAbilities(): Map<string, string> {
+  const map = new Map<string, string>();
+  const read = (file: string): Record<string, string>[] => {
+    const full = path.join(WAHA_DIR, file);
+    if (!fs.existsSync(full)) return [];
+    return parse(fs.readFileSync(full, 'utf-8').replace(/^﻿/, ''), {
+      delimiter: '|', columns: true, skip_empty_lines: true,
+      relax_quotes: true, relax_column_count: true, trim: true,
+    });
+  };
+  for (const file of ['Abilities.csv', 'Datasheets_abilities.csv']) {
+    for (const r of read(file)) {
+      const name = pickCsv(r, 'name');
+      const desc = stripHtml(pickCsv(r, 'description'));
+      if (!name || !desc) continue;
+      const k = normAbility(name);
+      if (k && !map.has(k)) map.set(k, desc);
+    }
+  }
+  return map;
+}
+
 function baseInfo(b: BaseSize | undefined, name: string, wounds: number): {
   shape: BaseShape; mm: number; w: number; h: number;
 } {
@@ -118,6 +190,16 @@ async function main() {
   const abilityName = new Map<string, string>();
   const coreAb = (await getJson<Ability40[]>(RAW('data/enrichment/_core/abilities.json'))) ?? [];
   for (const a of coreAb) if (a.ability_id) abilityName.set(a.ability_id, a.name);
+
+  // optional human-readable effect text from a local Wahapedia export
+  const wahaText = loadWahaAbilities();
+  let abBackfilled = 0;
+  let abTotal = 0;
+  console.log(
+    wahaText.size
+      ? `[40kdc] loaded ${wahaText.size} ability descriptions from data/wahapedia/ for backfill`
+      : `[40kdc] no data/wahapedia/ export found — ability effect text will be blank`
+  );
 
   const factions: FactionRecord[] = [];
   const datasheets: DatasheetRecord[] = [];
@@ -209,15 +291,21 @@ async function main() {
         }
       }
 
-      const abilities: Ability[] = (u.ability_ids ?? []).map((id) => ({
-        name: abilityName.get(id) ?? humanize(id),
-        description: '', // effect is a machine-readable DSL, not display prose
-        type: '',
-        parameter: '',
-      }));
-
-      const pts = u.points?.[0]?.cost;
-      const background = pts != null ? `${pts} pts` : '';
+      const abilities: Ability[] = (u.ability_ids ?? []).map((id) => {
+        const name = abilityName.get(id) ?? humanize(id);
+        const key = normAbility(name);
+        const description = wahaText.get(key) ?? '';
+        abTotal++;
+        if (description) abBackfilled++;
+        return {
+          name,
+          description, // borrowed from Wahapedia where the name matches, else blank
+          type: CORE_ABILITIES.has(key) ? 'core' : '',
+          parameter: '',
+          // the borrowed prose is 10th-edition wording — flag it so the UI can say so
+          textEdition: description ? '10e' : '',
+        };
+      });
 
       datasheets.push({
         // Shared units (Agents, allied vehicles, …) reuse the same slug id across
@@ -231,7 +319,8 @@ async function main() {
         baseShape: b.shape,
         baseW: b.w,
         baseH: b.h,
-        background,
+        points: u.points?.[0]?.cost ?? null,
+        background: '',
         profiles,
         weapons: wpns,
         abilities,
@@ -288,6 +377,11 @@ async function main() {
     `\n[40kdc] factions: ${factionMap.size}, datasheets: ${datasheets.length}, ` +
       `stratagems: ${stratagems.length}, enhancements: ${enhancements.length}`
   );
+  if (abTotal)
+    console.log(
+      `[40kdc] ability text: ${abBackfilled}/${abTotal} backfilled from Wahapedia ` +
+        `(${Math.round((abBackfilled / abTotal) * 100)}%)`
+    );
   buildDatabase([...factionMap.values()], datasheets, {
     stratagems,
     detachmentAbilities,

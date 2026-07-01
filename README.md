@@ -58,13 +58,18 @@ node scripts/gen-detachment-points.mjs   # refresh per-detachment DP costs
 
 `ingest:40kdc` fetches structured 11th-edition JSON straight from the
 [40kdc-data](https://github.com/wn-mitch/40kdc-data) repo on GitHub (no manual
-download) and rebuilds `data/stats.sqlite`: datasheet stat lines, points, base
+download) and rebuilds `data/stats.sqlite`: datasheet stat lines, **points**, base
 sizes, weapon profiles, keywords, and the detachment / stratagem / enhancement
 lists (names + CP + phase + DP) for every faction, including Space Marine
-chapters. The community's ability/stratagem *effects* are a machine-readable DSL,
-not prose, so effect text is left blank — the in-app editor and
-`client/src/data/detachments11e.ts` overrides fill that in. The data is CC BY 4.0;
-the attribution is shown in the app footer.
+chapters. The data is CC BY 4.0; the attribution is shown in the app footer.
+
+**Ability effect text:** 40kdc encodes ability/stratagem effects as a
+machine-readable DSL, not prose. If a Wahapedia CSV export is present in
+`data/wahapedia/` (see the alternate below), the importer **backfills** each
+ability's human-readable effect text by matching on name (~98% coverage;
+abilities new in 11th stay blank until Wahapedia updates). Detachment/stratagem
+effect prose still comes from the `client/src/data/detachments11e.ts` overrides
+and the in-app editor.
 
 Committing the rebuilt `data/stats.sqlite` is what ships the new data to
 production (the Railway build does not re-ingest).

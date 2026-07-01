@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type {
+  DrawStroke,
   GamePhase,
   HydratedRoster,
   Layout,
@@ -12,10 +13,15 @@ import { SECONDARY_CARDS } from '../data/missions';
 
 const SECONDARY_CARD_IDS = SECONDARY_CARDS.map((c) => c.id);
 
-export type Tool = 'select' | 'ruler' | 'ping' | 'pan';
+export type Tool = 'select' | 'ruler' | 'ping' | 'pan' | 'draw';
 
 // transient ping markers (not in room state); pruned by the board render loop
 export const livePings: PingEvent[] = [];
+
+// This player's own freehand strokes (board inches). Kept client-side so private
+// sketches never leave the browser; shared to the room only when shareDrawings is
+// on. Read directly by the board render loop, like livePings.
+export const myDrawings: DrawStroke[] = [];
 
 interface GameStore {
   connected: boolean;
@@ -34,6 +40,11 @@ interface GameStore {
   rangeRingInch: number; // custom range ring (e.g. charge 12")
   renderError: string | null; // last caught board-render error (for on-screen diagnostics)
 
+  // freehand draw tool
+  showDrawings: boolean; // render annotations (mine + any shared with me)
+  shareDrawings: boolean; // broadcast my strokes to the opponent
+  drawColor: string;
+
   // private secondary missions (local to this browser, persisted)
   secMode: 'tactical' | 'fixed'; // 11th ed: choose Fixed or Tactical at game start
   secDeck: string[]; // Tactical: draw pile
@@ -49,6 +60,12 @@ interface GameStore {
   toggleRanges: () => void;
   toggleDeployAid: () => void;
   setRangeRing: (n: number) => void;
+
+  toggleShowDrawings: () => void;
+  toggleShareDrawings: () => void;
+  setDrawColor: (c: string) => void;
+  commitStroke: (s: DrawStroke) => void; // add a finished stroke (+ share if enabled)
+  clearMyDrawings: () => void;
 
   setSecMode: (m: 'tactical' | 'fixed') => void;
   secShuffle: () => void; // (re)build a fresh shuffled Tactical deck
@@ -142,6 +159,9 @@ export const useGame = create<GameStore>((set, get) => {
     showDeployAid: false,
     rangeRingInch: 12,
     renderError: null,
+    showDrawings: true,
+    shareDrawings: false,
+    drawColor: '#ffd84e',
     ...loadSec(),
     flip: false,
 
@@ -153,6 +173,24 @@ export const useGame = create<GameStore>((set, get) => {
     toggleRanges: () => set((s) => ({ showRanges: !s.showRanges })),
     toggleDeployAid: () => set((s) => ({ showDeployAid: !s.showDeployAid })),
     setRangeRing: (n) => set({ rangeRingInch: Math.max(1, Math.min(60, n)) }),
+
+    toggleShowDrawings: () => set((s) => ({ showDrawings: !s.showDrawings })),
+    toggleShareDrawings: () =>
+      set((s) => {
+        const shareDrawings = !s.shareDrawings;
+        // sharing on → push what I have; sharing off → retract from the room
+        intents.setDrawings(shareDrawings ? myDrawings : []);
+        return { shareDrawings };
+      }),
+    setDrawColor: (c) => set({ drawColor: c }),
+    commitStroke: (stroke) => {
+      myDrawings.push(stroke);
+      if (get().shareDrawings) intents.setDrawings(myDrawings);
+    },
+    clearMyDrawings: () => {
+      myDrawings.length = 0;
+      if (get().shareDrawings) intents.setDrawings(myDrawings);
+    },
 
     setSecMode: (m) =>
       set((s) => {
@@ -237,6 +275,7 @@ export function setRoomJoin(
 
 export function leaveRoom() {
   socket.emit('room:leave');
+  myDrawings.length = 0; // discard my private sketches when leaving
   useGame.setState({ code: null, slot: null, state: null, selectedTokenId: null });
 }
 
@@ -259,6 +298,7 @@ export const intents = {
   ruler: (a: { x: number; y: number }, b: { x: number; y: number }) =>
     socket.emit('ruler:set', { a, b }),
   rulerClear: () => socket.emit('ruler:clear'),
+  setDrawings: (strokes: DrawStroke[]) => socket.emit('draw:set', { strokes }),
   nextTurn: () => socket.emit('turn:next'),
   setNotes: (text: string) => socket.emit('notes:set', { text }),
   nextPhase: () => socket.emit('phase:next'),

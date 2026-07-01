@@ -297,6 +297,24 @@ export function registerHandlers(io: TServer, socket: TSocket) {
     broadcastFull(io, state.code);
   });
 
+  // Player shares (or retracts) their freehand annotations. We store only the
+  // strokes a player opts to share; private sketches never leave their browser.
+  socket.on('draw:set', ({ strokes }) => {
+    const state = requireRoom();
+    const slot = socket.data.slot;
+    if (!state || !slot || slot === 'spectator') return;
+    if (!state.drawings) state.drawings = { player1: [], player2: [] };
+    const clean = (Array.isArray(strokes) ? strokes : []).slice(0, 100).map((s) => ({
+      id: String(s?.id ?? '').slice(0, 40),
+      color: typeof s?.color === 'string' ? s.color.slice(0, 16) : '#ffd84e',
+      points: (Array.isArray(s?.points) ? s.points : [])
+        .slice(0, 500)
+        .map((p) => ({ x: Number(p?.x) || 0, y: Number(p?.y) || 0 })),
+    })).filter((s) => s.points.length > 0);
+    state.drawings[slot] = clean;
+    broadcastFull(io, state.code);
+  });
+
   socket.on('phase:next', () => {
     const state = requireRoom();
     if (!state) return;

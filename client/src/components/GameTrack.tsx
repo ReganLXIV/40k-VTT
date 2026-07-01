@@ -1,4 +1,4 @@
-import { GAME_PHASES, type PlayerSlot } from '@shared/types';
+import { GAME_PHASES } from '@shared/types';
 import { useGame, intents } from '../state/gameStore';
 
 function Counter({

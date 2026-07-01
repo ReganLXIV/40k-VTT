@@ -17,6 +17,7 @@ export interface DatasheetRecord {
   baseShape: 'circle' | 'oval' | 'rect';
   baseW: number;
   baseH: number;
+  points?: number | null; // starting unit cost (single model / min squad), if known
   background: string;
   profiles: ModelProfile[];
   weapons: Weapon[];
@@ -89,6 +90,7 @@ CREATE TABLE datasheet (
   base_shape TEXT,
   base_w     REAL,
   base_h     REAL,
+  points     INTEGER,
   background TEXT
 );
 CREATE INDEX idx_datasheet_namenorm ON datasheet(name_norm);
@@ -124,6 +126,7 @@ CREATE TABLE ability (
   description  TEXT,
   type         TEXT,
   parameter    TEXT,
+  text_edition TEXT,
   PRIMARY KEY (datasheet_id, line)
 );
 
@@ -182,8 +185,8 @@ export function buildDatabase(
 
   const insFaction = db.prepare('INSERT OR REPLACE INTO faction (id, name) VALUES (?, ?)');
   const insDatasheet = db.prepare(
-    `INSERT OR REPLACE INTO datasheet (id, name, name_norm, faction_id, role, base_mm, base_shape, base_w, base_h, background)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT OR REPLACE INTO datasheet (id, name, name_norm, faction_id, role, base_mm, base_shape, base_w, base_h, points, background)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const insProfile = db.prepare(
     `INSERT OR REPLACE INTO model_profile (datasheet_id, line, model_name, m, t, sv, inv_sv, w, ld, oc, base_mm, base_shape, base_w, base_h)
@@ -194,8 +197,8 @@ export function buildDatabase(
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const insAbility = db.prepare(
-    `INSERT OR REPLACE INTO ability (datasheet_id, line, name, description, type, parameter)
-     VALUES (?, ?, ?, ?, ?, ?)`
+    `INSERT OR REPLACE INTO ability (datasheet_id, line, name, description, type, parameter, text_edition)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
   );
   const insKeyword = db.prepare(
     'INSERT INTO keyword (datasheet_id, keyword) VALUES (?, ?)'
@@ -229,6 +232,7 @@ export function buildDatabase(
         d.baseShape,
         d.baseW,
         d.baseH,
+        d.points ?? null,
         d.background
       );
       d.profiles.forEach((p, i) =>
@@ -241,7 +245,7 @@ export function buildDatabase(
         insWeapon.run(d.id, i, w.name, w.type, w.range, w.a, w.skill, w.s, w.ap, w.d, w.keywords)
       );
       d.abilities.forEach((a, i) =>
-        insAbility.run(d.id, i, a.name, a.description, a.type ?? '', a.parameter ?? '')
+        insAbility.run(d.id, i, a.name, a.description, a.type ?? '', a.parameter ?? '', a.textEdition ?? '')
       );
       for (const k of d.keywords) insKeyword.run(d.id, k);
       for (const name of d.leads) insLeader.run(d.id, name);

@@ -102,6 +102,7 @@ function freshState(code: string, layout: Layout): RoomState {
     notes: { player1: '', player2: '' },
     commandPoints: { player1: 0, player2: 0 },
     score: { player1: 0, player2: 0 },
+    drawings: { player1: [], player2: [] },
   };
 }
 

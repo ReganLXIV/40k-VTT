@@ -115,6 +115,7 @@ export default function Game() {
         <button className={`toolbtn ${tool === 'select' ? 'active' : ''}`} onClick={() => setTool('select')}>Select</button>
         <button className={`toolbtn ${tool === 'ruler' ? 'active' : ''}`} onClick={() => setTool('ruler')}>Ruler</button>
         <button className={`toolbtn ${tool === 'ping' ? 'active' : ''}`} onClick={() => setTool('ping')} title="Click the board to ping your opponent (or Alt+click any time)">Ping</button>
+        <button className={`toolbtn ${tool === 'draw' ? 'active' : ''}`} onClick={() => setTool('draw')} title="Freehand-draw on the board (D). Toggle Private/Shared and Show/Hide in the on-board controls">Draw</button>
         <button className={`toolbtn ${tool === 'pan' ? 'active' : ''}`} onClick={() => setTool('pan')} title="Drag to pan; scroll wheel zooms anytime">Pan</button>
         <button className={`toolbtn ${showGrid ? 'active' : ''}`} onClick={toggleGrid}>Grid</button>
         <button className={`toolbtn ${showRanges ? 'active' : ''}`} onClick={toggleRanges} title="Show Move + weapon range rings around the selected unit">Ranges</button>

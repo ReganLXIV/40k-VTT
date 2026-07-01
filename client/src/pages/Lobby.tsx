@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { HydratedRoster, RoomJoinedPayload } from '@shared/types';
+import type { RoomJoinedPayload } from '@shared/types';
 import { socket } from '../socket';
 import { useGame, setRoomJoin, intents } from '../state/gameStore';
 import ArmyImport from '../components/ArmyImport';

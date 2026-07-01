@@ -36,6 +36,7 @@ export interface Ability {
   description: string;
   type?: string; // 'Core' | 'Faction' | 'Datasheet' | 'Wargear' | ... (from Wahapedia)
   parameter?: string; // e.g. Scouts -> '9"', Feel No Pain -> '5+'
+  textEdition?: string; // edition the effect text is written for, e.g. '10e' (backfilled from Wahapedia)
 }
 
 export interface Datasheet {
@@ -48,6 +49,7 @@ export interface Datasheet {
   baseShape: BaseShape;
   baseW: number; // mm
   baseH: number; // mm
+  points?: number | null; // starting unit cost, if known
   background: string;
   profiles: ModelProfile[];
   weapons: Weapon[];
@@ -261,6 +263,16 @@ export interface RoomState {
   commandPoints: Record<PlayerSlot, number>;
   score: Record<PlayerSlot, number>;
   primaryMissionId?: string; // shared primary mission card id
+  drawings?: Record<PlayerSlot, DrawStroke[]>; // freehand annotations SHARED with the opponent
+}
+
+// A freehand pen stroke drawn on the board, stored in canonical board inches so
+// it renders correctly through each client's view flip. Private sketches stay
+// client-side; only strokes a player chooses to share land in RoomState.drawings.
+export interface DrawStroke {
+  id: string;
+  color: string;
+  points: Point[];
 }
 
 export type GamePhase = 'Command' | 'Movement' | 'Shooting' | 'Charge' | 'Fight';
@@ -302,6 +314,7 @@ export interface ClientToServer {
   'dice:reroll1s': (data: { id: string }) => void;
   'ruler:set': (data: { a: Point; b: Point }) => void;
   'ruler:clear': () => void;
+  'draw:set': (data: { strokes: DrawStroke[] }) => void;
   'turn:next': () => void;
   'notes:set': (data: { text: string }) => void;
   'phase:next': () => void;

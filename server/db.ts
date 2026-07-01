@@ -38,6 +38,7 @@ interface DatasheetRow {
   base_shape: 'circle' | 'oval' | 'rect' | null;
   base_w: number | null;
   base_h: number | null;
+  points: number | null;
   background: string;
 }
 
@@ -90,7 +91,7 @@ function rowToDatasheet(row: DatasheetRow): Datasheet {
   const abilities = (
     d
       .prepare(
-        'SELECT name, description, type, parameter FROM ability WHERE datasheet_id = ? ORDER BY line'
+        'SELECT name, description, type, parameter, text_edition FROM ability WHERE datasheet_id = ? ORDER BY line'
       )
       .all(row.id) as any[]
   ).map(
@@ -99,6 +100,7 @@ function rowToDatasheet(row: DatasheetRow): Datasheet {
       description: a.description,
       type: a.type || undefined,
       parameter: a.parameter || undefined,
+      textEdition: a.text_edition || undefined,
     })
   );
 
@@ -124,6 +126,7 @@ function rowToDatasheet(row: DatasheetRow): Datasheet {
     baseShape: row.base_shape ?? 'circle',
     baseW: row.base_w ?? row.base_mm,
     baseH: row.base_h ?? row.base_mm,
+    points: row.points ?? null,
     background: row.background,
     profiles,
     weapons,
@@ -134,7 +137,7 @@ function rowToDatasheet(row: DatasheetRow): Datasheet {
 }
 
 const SELECT_DATASHEET = `
-  SELECT d.id, d.name, d.faction_id, f.name AS faction_name, d.role, d.base_mm, d.base_shape, d.base_w, d.base_h, d.background
+  SELECT d.id, d.name, d.faction_id, f.name AS faction_name, d.role, d.base_mm, d.base_shape, d.base_w, d.base_h, d.points, d.background
   FROM datasheet d
   JOIN faction f ON f.id = d.faction_id
 `;
@@ -174,6 +177,7 @@ export interface DatasheetIndexEntry {
   factionName: string;
   baseMm: number;
   role: string;
+  points: number | null;
 }
 
 export function allDatasheetIndex(factionName?: string): DatasheetIndexEntry[] {
@@ -181,7 +185,7 @@ export function allDatasheetIndex(factionName?: string): DatasheetIndexEntry[] {
   if (factionName) {
     rows = getDb()
       .prepare(
-        `SELECT d.id, d.name, d.name_norm, d.faction_id, f.name AS faction_name, d.base_mm, d.role
+        `SELECT d.id, d.name, d.name_norm, d.faction_id, f.name AS faction_name, d.base_mm, d.role, d.points
          FROM datasheet d JOIN faction f ON f.id = d.faction_id
          WHERE lower(f.name) = lower(?)
          ORDER BY d.name`
@@ -190,7 +194,7 @@ export function allDatasheetIndex(factionName?: string): DatasheetIndexEntry[] {
   } else {
     rows = getDb()
       .prepare(
-        `SELECT d.id, d.name, d.name_norm, d.faction_id, f.name AS faction_name, d.base_mm, d.role
+        `SELECT d.id, d.name, d.name_norm, d.faction_id, f.name AS faction_name, d.base_mm, d.role, d.points
          FROM datasheet d JOIN faction f ON f.id = d.faction_id
          ORDER BY d.name`
       )
@@ -204,6 +208,7 @@ export function allDatasheetIndex(factionName?: string): DatasheetIndexEntry[] {
     factionName: r.faction_name,
     baseMm: r.base_mm,
     role: r.role,
+    points: r.points ?? null,
   }));
 }
 

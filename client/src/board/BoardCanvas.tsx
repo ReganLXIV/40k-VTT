@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { Point, Token } from '@shared/types';
-import { useGame, intents, livePings } from '../state/gameStore';
+import type { DrawStroke, Point, Token } from '@shared/types';
+import { useGame, intents, livePings, myDrawings } from '../state/gameStore';
 import { computeView, pxToInches, inchesToPx, fullArc, type ViewParams } from './coords';
 import { renderBoard } from './render';
 import { clampToBoard, objectiveAt, tokenAt } from './interactions';
@@ -12,17 +12,18 @@ interface QuickMenu {
 }
 
 const MOVE_THROTTLE_MS = 40;
+const DRAW_COLORS = ['#ffd84e', '#4ea1ff', '#ff5d5d', '#5ad17a', '#ffffff'];
 
 export default function BoardCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const state = useGame((s) => s.state);
-  const slot = useGame((s) => s.slot);
   const flip = useGame((s) => s.flip);
   const tool = useGame((s) => s.tool);
-  const showGrid = useGame((s) => s.showGrid);
-  const selectedTokenId = useGame((s) => s.selectedTokenId);
+  const showDrawings = useGame((s) => s.showDrawings);
+  const shareDrawings = useGame((s) => s.shareDrawings);
+  const drawColor = useGame((s) => s.drawColor);
   const setSelectedToken = useGame((s) => s.setSelectedToken);
 
   const [quickMenu, setQuickMenu] = useState<QuickMenu | null>(null);
@@ -32,6 +33,7 @@ export default function BoardCanvas() {
   const dragRef = useRef<{ id: string; offset: Point; start: Point } | null>(null);
   const localPosRef = useRef<Map<string, Point>>(new Map());
   const rulerRef = useRef<{ a: Point; b: Point } | null>(null);
+  const strokeRef = useRef<DrawStroke | null>(null); // in-progress freehand stroke
   const downRef = useRef<{ p: Point; moved: boolean } | null>(null);
   const lastEmitRef = useRef(0);
   // marquee multi-select + group drag (move a block of models together)
@@ -97,6 +99,7 @@ export default function BoardCanvas() {
       if (k === 'v' || k === 's') gs.setTool('select');
       else if (k === 'r') gs.setTool('ruler');
       else if (k === 'p') gs.setTool('ping');
+      else if (k === 'd') gs.setTool('draw');
       else if (k === 'g') gs.toggleGrid();
     };
     window.addEventListener('keydown', onKey);
@@ -151,6 +154,7 @@ export default function BoardCanvas() {
           dpr,
         });
         drawPings(ctx, v);
+        drawDrawings(ctx, v, gs, strokeRef.current);
         drawSelection(ctx, v, tokens, selectedIdsRef.current, marqueeRef.current);
         // live distance while dragging a single token
         const dr = dragRef.current;
@@ -250,6 +254,19 @@ export default function BoardCanvas() {
       rulerRef.current = { a: p, b: p };
       return;
     }
+
+    // Draw tool: begin a freehand stroke (players only, not spectators).
+    if (tool === 'draw') {
+      const gs = useGame.getState();
+      if (gs.slot && gs.slot !== 'spectator') {
+        strokeRef.current = {
+          id: `${Date.now()}-${Math.round(Math.random() * 1e6)}`,
+          color: gs.drawColor,
+          points: [p],
+        };
+      }
+      return;
+    }
     const tok = tokenAt(p, st.tokens);
     if (tok) {
       // grabbing a token that's part of a multi-selection moves the whole block
@@ -284,6 +301,14 @@ export default function BoardCanvas() {
         y: panRef.current.y + (e.clientY - panDragRef.current.lastY) * dpr,
       };
       panDragRef.current = { lastX: e.clientX, lastY: e.clientY };
+      return;
+    }
+    // extend the in-progress freehand stroke (sampled so arrays stay small)
+    if (strokeRef.current && viewRef.current) {
+      const p = toCanonical(e);
+      const pts = strokeRef.current.points;
+      const last = pts[pts.length - 1];
+      if (!last || Math.hypot(p.x - last.x, p.y - last.y) > 0.15) pts.push(p);
       return;
     }
     if (!viewRef.current || !downRef.current) return;
@@ -349,9 +374,17 @@ export default function BoardCanvas() {
     }
   };
 
-  const onMouseUp = (e: React.MouseEvent) => {
+  const onMouseUp = () => {
     if (panDragRef.current) {
       panDragRef.current = null;
+      return;
+    }
+    // finish a freehand stroke: keep it if it has real length
+    if (strokeRef.current) {
+      const stroke = strokeRef.current;
+      strokeRef.current = null;
+      downRef.current = null;
+      if (stroke.points.length > 1) useGame.getState().commitStroke(stroke);
       return;
     }
     const st = useGame.getState().state;
@@ -470,6 +503,41 @@ export default function BoardCanvas() {
         <button style={{ position: 'absolute', top: 8, left: 8 }} onClick={clearRuler}>
           Clear ruler
         </button>
+      )}
+      {tool === 'draw' && (
+        <div
+          style={{
+            position: 'absolute', top: 8, left: 8, display: 'flex', gap: 6, alignItems: 'center',
+            background: 'var(--panel-2)', border: '1px solid var(--border)', borderRadius: 8, padding: 6,
+          }}
+        >
+          {DRAW_COLORS.map((c) => (
+            <button
+              key={c}
+              onClick={() => useGame.getState().setDrawColor(c)}
+              title="Pen colour"
+              style={{
+                width: 18, height: 18, borderRadius: '50%', background: c, padding: 0,
+                border: drawColor === c ? '2px solid #fff' : '1px solid var(--border)',
+              }}
+            />
+          ))}
+          <button
+            className={`toolbtn ${showDrawings ? 'active' : ''}`}
+            onClick={() => useGame.getState().toggleShowDrawings()}
+            title="Show or hide annotations on the board"
+          >
+            {showDrawings ? 'Shown' : 'Hidden'}
+          </button>
+          <button
+            className={`toolbtn ${shareDrawings ? 'active' : ''}`}
+            onClick={() => useGame.getState().toggleShareDrawings()}
+            title="When on, your opponent sees your drawing; when off it's private to you"
+          >
+            {shareDrawings ? 'Shared' : 'Private'}
+          </button>
+          <button onClick={() => useGame.getState().clearMyDrawings()}>Clear</button>
+        </div>
       )}
       {quickMenu && token && (
         <QuickMenuView
@@ -649,6 +717,42 @@ function drawMeasureLine(ctx: CanvasRenderingContext2D, v: ViewParams, a: Point,
   ctx.strokeText(label, mid.x, mid.y - 8);
   ctx.fillText(label, mid.x, mid.y - 8);
   ctx.textAlign = 'left';
+}
+
+function drawStroke(ctx: CanvasRenderingContext2D, v: ViewParams, s: DrawStroke) {
+  if (!s.points.length) return;
+  ctx.beginPath();
+  s.points.forEach((pt, i) => {
+    const c = inchesToPx(pt, v);
+    if (i === 0) ctx.moveTo(c.x, c.y);
+    else ctx.lineTo(c.x, c.y);
+  });
+  ctx.strokeStyle = s.color || '#ffd84e';
+  ctx.lineWidth = 2.5 * (window.devicePixelRatio || 1);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+// My own strokes come from the local buffer (instant, private); the opponent's
+// come from shared room state. The stroke being drawn right now is always shown.
+function drawDrawings(
+  ctx: CanvasRenderingContext2D,
+  v: ViewParams,
+  gs: ReturnType<typeof useGame.getState>,
+  inProgress: DrawStroke | null
+) {
+  if (gs.showDrawings) {
+    for (const s of myDrawings) drawStroke(ctx, v, s);
+    const shared = gs.state?.drawings;
+    if (shared) {
+      for (const [slot, strokes] of Object.entries(shared)) {
+        if (slot === gs.slot) continue; // my shared copy would duplicate myDrawings
+        for (const s of strokes) drawStroke(ctx, v, s);
+      }
+    }
+  }
+  if (inProgress) drawStroke(ctx, v, inProgress);
 }
 
 const PING_MS = 2600;

@@ -228,11 +228,13 @@ function main() {
   const abilitiesByDs = byDs<Ability>(abilityRows, (r) => {
     const aid = pick(r, 'ability_id');
     const linked = aid ? abilityLookup.get(aid) : undefined;
+    const description = stripHtml(pick(r, 'description') || linked?.description || '');
     return {
       name: pick(r, 'name') || linked?.name || 'Ability',
-      description: stripHtml(pick(r, 'description') || linked?.description || ''),
+      description,
       type: pick(r, 'type'),
       parameter: pick(r, 'parameter'),
+      textEdition: description ? '10e' : '', // Wahapedia export is 10th edition
     };
   });
 

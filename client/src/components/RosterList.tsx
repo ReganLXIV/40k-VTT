@@ -7,6 +7,7 @@ interface DsIndex {
   name: string;
   factionName: string;
   baseMm: number;
+  points: number | null;
 }
 
 async function fetchDatasheet(id: string): Promise<Datasheet> {
@@ -57,6 +58,8 @@ function DatasheetPicker({
           <div key={d.id} className="row small" style={{ padding: '2px 0' }}>
             <button onClick={() => onPick(d.id)}>{d.name}</button>
             <span className="muted">{d.factionName}</span>
+            <span className="spacer" />
+            {d.points != null && <span className="badge">{d.points} pts</span>}
           </div>
         ))}
         {filtered.length === 0 && <div className="small muted">no matches</div>}
@@ -91,6 +94,7 @@ export default function RosterList({
         {roster.faction && <span className="badge">{roster.faction}</span>}
         {roster.detachment && <span className="badge">{roster.detachment}</span>}
         <span className="spacer" />
+        <span className="badge warn">{roster.units.reduce((s, u) => s + (u.points || 0), 0)} pts</span>
         {roster.unmatchedCount > 0 && (
           <span className="badge bad">{roster.unmatchedCount} unmatched</span>
         )}
