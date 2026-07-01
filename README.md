@@ -10,8 +10,9 @@ like a physical game over a video call. Player 2 sees the board flipped 180°.
 
 > Unofficial fan tool. Not affiliated with or endorsed by Games Workshop. No GW
 > artwork or rules text is reproduced. Terrain layouts are plain geometric shapes
-> at published *measurements* (facts). Datasheet stats come from the **Wahapedia**
-> CSV export — credited in the app footer.
+> at published *measurements* (facts). Datasheet stats come from the community
+> **[40kdc-data](https://github.com/wn-mitch/40kdc-data)** project (11th edition,
+> CC BY 4.0) — credited in the app footer.
 
 ---
 
@@ -21,9 +22,11 @@ like a physical game over a video call. Player 2 sees the board flipped 180°.
 npm install
 
 # Build the stat database. Pick ONE:
-npm run seed      # small SAMPLE data — works immediately, placeholder stats
+npm run seed          # small SAMPLE data — works immediately, placeholder stats
 # or
-npm run ingest    # real stats from Wahapedia CSVs (see below)
+npm run ingest:40kdc  # real 11th-edition stats from 40kdc-data (see below) — recommended
+# or
+npm run ingest        # 10th-edition stats from a local Wahapedia CSV export
 
 npm run dev       # server :3001 + client :5173 (open http://localhost:5173)
 ```
@@ -45,6 +48,28 @@ exists before `npm start`. Rooms are in-memory and reset on restart (by design).
 ---
 
 ## Getting the datasheet data (real stats)
+
+### Recommended: 40kdc-data (11th edition)
+
+```bash
+npm run ingest:40kdc      # stop the dev server first — Windows locks stats.sqlite
+node scripts/gen-detachment-points.mjs   # refresh per-detachment DP costs
+```
+
+`ingest:40kdc` fetches structured 11th-edition JSON straight from the
+[40kdc-data](https://github.com/wn-mitch/40kdc-data) repo on GitHub (no manual
+download) and rebuilds `data/stats.sqlite`: datasheet stat lines, points, base
+sizes, weapon profiles, keywords, and the detachment / stratagem / enhancement
+lists (names + CP + phase + DP) for every faction, including Space Marine
+chapters. The community's ability/stratagem *effects* are a machine-readable DSL,
+not prose, so effect text is left blank — the in-app editor and
+`client/src/data/detachments11e.ts` overrides fill that in. The data is CC BY 4.0;
+the attribution is shown in the app footer.
+
+Committing the rebuilt `data/stats.sqlite` is what ships the new data to
+production (the Railway build does not re-ingest).
+
+### Alternate: Wahapedia CSV export (10th edition)
 
 There is **no live API**. Download the Wahapedia CSV data export and place the files
 in `data/wahapedia/`. Per the Wahapedia "Export Data Specs", these are **`|`
@@ -72,20 +97,17 @@ default it ingests **all factions**; set `INGEST_XENOS_ONLY=1` to limit it to th
 Xenos factions. It prints per-faction counts and warns about any datasheet missing
 model profiles or weapons.
 
-### Refreshing to a new edition
+### Refreshing to a new dataslate
 
-Detachments, stratagems and enhancements all come from this import, so updating to
-a new edition (e.g. 11th) is **data-only, one command**:
+Both importers write the same schema via `scripts/dbBuild.ts`, so refreshing is
+data-only. For the 40kdc source, re-run `npm run ingest:40kdc` (it always pulls
+the latest from GitHub) then `node scripts/gen-detachment-points.mjs`, and commit
+the rebuilt `data/stats.sqlite` + regenerated `detachmentPoints.ts`.
 
-1. Download the latest Wahapedia CSV export and overwrite the files in
-   `data/wahapedia/`.
-2. Stop the dev server (Windows locks `stats.sqlite`).
-3. `npm run ingest` — rebuilds the DB with the new detachments/stratagems/
-   enhancements for every faction. No schema or code change needed.
-
-Per-detachment **Detachment Points** (not in the CSV export) are kept separately
-in `client/src/data/detachmentPoints.ts`, and any hand-entered 11th-ed detachment
-overrides live in `client/src/data/detachments11e.ts`.
+`client/src/data/detachmentPoints.ts` is **auto-generated** from the import (DP per
+detachment for every faction). Hand-entered 11th-ed detachment *effect* overrides
+live in `client/src/data/detachments11e.ts`, and per-user in-app edits are saved to
+localStorage — the Detachment panel resolves user edit → 11e override → import.
 
 ---
 
@@ -95,7 +117,10 @@ overrides live in `client/src/data/detachments11e.ts`.
 40k-vtt/
 ├── data/layouts/           # committed preset layout JSON
 ├── scripts/
-│   ├── ingest-wahapedia.ts # CSV -> stats.sqlite
+│   ├── ingest-40kdc.ts     # 40kdc-data JSON (11th ed) -> stats.sqlite
+│   ├── ingest-wahapedia.ts # Wahapedia CSV (10th ed) -> stats.sqlite
+│   ├── hullSizes.ts        # shared vehicle hull footprints
+│   ├── gen-detachment-points.mjs # stats.sqlite -> detachmentPoints.ts
 │   ├── seed-sample.ts      # sample stats.sqlite (no download needed)
 │   └── dbBuild.ts          # shared schema + insert layer
 ├── server/                 # Express + Socket.IO + SQLite
@@ -121,7 +146,8 @@ overrides live in `client/src/data/detachments11e.ts`.
 |--------|------|
 | `npm run dev` | server + client with hot reload |
 | `npm run seed` | build sample `stats.sqlite` |
-| `npm run ingest` | build `stats.sqlite` from Wahapedia CSVs |
+| `npm run ingest:40kdc` | build `stats.sqlite` from 40kdc-data (11th ed) |
+| `npm run ingest` | build `stats.sqlite` from Wahapedia CSVs (10th ed) |
 | `npm run build` | build client and server for production |
 | `npm start` | run the built single-process server |
 ```

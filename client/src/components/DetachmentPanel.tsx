@@ -96,18 +96,20 @@ export default function DetachmentPanel({
   const sourceBadge = (s: DetSource) => {
     if (s === 'edited') return <span className="badge p1">edited</span>;
     if (s === '11e') return <span className="badge p2">11th ed</span>;
-    if (s === 'wahapedia')
+    if (s === 'imported')
       return (
-        <span className="badge" title="From the Wahapedia import, which is 10th edition">
-          10th ed (Wahapedia)
+        <span
+          className="badge"
+          title="Names, CP and phase from the 40kdc 11th-edition import; effect text not included — use Edit to add it"
+        >
+          11th ed (names only)
         </span>
       );
     return null;
   };
   const match = (s: string) => !q || s.toLowerCase().includes(q.toLowerCase());
-  // Boarding Actions detachments and stray artifacts are filtered out at ingest
-  // time (see scripts/ingest-wahapedia.ts), so the API already returns only real
-  // matched-play detachments here.
+  // The 40kdc import (scripts/ingest-40kdc.ts) only carries real matched-play
+  // detachments, so the API already returns just those here.
   const options = [...new Set([...available, ...selected])];
 
   return (

@@ -77,8 +77,16 @@ export default function Lobby() {
       )}
 
       <div className="footer-credit">
-        Datasheet data via the Wahapedia export. Unofficial fan tool — not affiliated
-        with or endorsed by Games Workshop. No GW artwork or rules text is reproduced.
+        11th-edition datasheet data from the{' '}
+        <a href="https://github.com/wn-mitch/40kdc-data" target="_blank" rel="noreferrer">
+          40kdc-data
+        </a>{' '}
+        project by Alpaca Software and the 40kdc community contributors, used under{' '}
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">
+          CC BY 4.0
+        </a>
+        . Unofficial fan tool — not affiliated with or endorsed by Games Workshop. No GW
+        artwork or rules text is reproduced.
       </div>
     </div>
   );

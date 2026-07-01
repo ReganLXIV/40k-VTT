@@ -2,7 +2,7 @@
 // anyone bring a detachment up to 11th edition in-app — typing in their own
 // rules from the faction pack — without code changes or re-ingesting. A user
 // edit takes priority over the built-in 11th-ed override, which takes priority
-// over the Wahapedia (10th-ed) import.
+// over the imported datasheet API (the 40kdc 11th-edition data).
 import type { DetachmentInfo } from '@shared/types';
 import { detachment11e } from './detachments11e';
 import { detachmentDP } from './detachmentPoints';
@@ -28,7 +28,7 @@ export interface DetachmentEdit extends NormDetachment {
   dp?: number | null; // overrides the static DP table when set
 }
 
-export type DetSource = 'edited' | '11e' | 'wahapedia' | 'none';
+export type DetSource = 'edited' | '11e' | 'imported' | 'none';
 
 const editKey = (f: string | undefined, n: string) => `vtt-det-edit-${(f || '').toLowerCase()}::${n}`;
 
@@ -97,7 +97,7 @@ export function resolveDetachment(
   if (edit) return { source: 'edited', content: edit };
   const ov = from11e(faction, name);
   if (ov) return { source: '11e', content: ov };
-  if (apiInfo) return { source: 'wahapedia', content: fromApi(apiInfo) };
+  if (apiInfo) return { source: 'imported', content: fromApi(apiInfo) };
   return { source: 'none', content: { enhancements: [], stratagems: [] } };
 }
 
