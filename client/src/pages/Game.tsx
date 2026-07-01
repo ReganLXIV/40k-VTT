@@ -30,6 +30,12 @@ export default function Game() {
   const [showImport, setShowImport] = useState(false);
   const [showDetachment, setShowDetachment] = useState(false);
   const [showMissions, setShowMissions] = useState(false);
+  const [leftOpen, setLeftOpen] = useState(() => localStorage.getItem('vtt-left-open') !== '0');
+  const toggleLeft = () =>
+    setLeftOpen((o) => {
+      localStorage.setItem('vtt-left-open', o ? '0' : '1');
+      return !o;
+    });
 
   const mySlot = slot === 'spectator' ? null : slot;
   const myRoster: HydratedRoster | undefined =
@@ -67,7 +73,7 @@ export default function Game() {
   const p2conn = state.players.player2?.connected;
 
   return (
-    <div className="game">
+    <div className={`game ${leftOpen ? '' : 'left-collapsed'}`}>
       {renderError && (
         <div
           style={{
@@ -85,6 +91,13 @@ export default function Game() {
         </div>
       )}
       <div className="topbar">
+        <button
+          className="toolbtn"
+          onClick={toggleLeft}
+          title={leftOpen ? 'Hide the army panel' : 'Show the army panel'}
+        >
+          {leftOpen ? '◀' : '☰'}
+        </button>
         <strong>Room {code}</strong>
         <span className={`badge ${mySlot === 'player1' ? 'p1' : mySlot === 'player2' ? 'p2' : ''}`}>
           You: {slot}
