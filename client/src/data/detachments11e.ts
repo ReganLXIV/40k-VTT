@@ -151,6 +151,66 @@ export const DETACHMENTS_11E: Record<string, Record<string, Detachment11e>> = {
         { name: 'Krump and Run', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'An Orks unit in Engagement Range of an enemy that Fell Back makes a Normal move up to 6".' },
       ],
     },
+    'Green Tide': {
+      rule: {
+        name: 'Mob Mentality',
+        effect: 'Boyz units gain a 6+ invulnerable save — improved to 5+ while the unit has 10+ models.',
+      },
+      enhancements: [
+        { name: 'Bloodthirsty Belligerence', pts: '15', effect: 'The bearer’s unit re-rolls Advance rolls, and re-rolls Charge rolls while it has 10+ models.' },
+        { name: 'Brutal But Kunnin’', pts: '25', effect: 'Command phase: roll a D6 (+2 if the unit has 10+ models); on 5+ gain 1 CP.' },
+        { name: 'Ferocious Show Off', pts: '10', effect: '+1 Strength to the bearer’s melee weapons — +3 instead while the unit has 10+ models.' },
+        { name: 'Raucous Warcaller', pts: '20', effect: 'The bearer’s unit always counts as having 10+ models for this detachment’s rule and stratagems.' },
+      ],
+      stratagems: [
+        { name: 'Bulldozer Brutality', cp: '1', turn: 'Your turn', phase: 'Fight', effect: 'Models within 3" of an enemy count as eligible to fight and can target enemies within 3".' },
+        { name: 'Competitive Streak', cp: '1', phase: 'Fight', effect: 'Re-roll Wound rolls of 1 — all Wound rolls if the unit has 10+ models.' },
+        { name: 'Tide of Muscle', cp: '1', turn: 'Your turn', phase: 'Charge', effect: '+1 to the unit’s Charge roll; re-roll it if the unit has 10+ models.' },
+        { name: 'Come On Ladz!', cp: '1', turn: 'Your turn', phase: 'Command', effect: 'Return D3+2 destroyed models to a Boyz unit.' },
+        { name: 'Braggin’ Rights', cp: '1', turn: 'Your turn', phase: 'Command', effect: 'Two units within 6" of each other count as having 10+ models while they stay within 6".' },
+        { name: 'Go Get ’Em!', cp: '1', turn: 'Your turn', phase: 'Shooting', effect: 'Roll a D6 and move the unit that far toward the nearest enemy; re-roll if it has 10+ models.' },
+      ],
+    },
+    'Kult of Speed': {
+      rule: {
+        name: 'Adrenaline Junkies',
+        effect: 'Speed Freeks units can shoot and declare a charge even in a turn they Advanced or Fell Back.',
+      },
+      enhancements: [
+        { name: 'Fasta Than Yooz', pts: '35', effect: 'A unit that disembarks after its Transport made a Normal move can still declare a charge.' },
+        { name: 'Speed Makes Right', pts: '25', effect: 'Command phase: roll a D6; on 3+ gain 1 CP if the bearer is within 9" of enemies.' },
+        { name: 'Squig-hide Tyres', pts: '15', effect: 'The bearer’s unit Consolidates up to 6" instead of 3".' },
+        { name: 'Wazblasta', pts: '10', effect: 'After the bearer’s unit shoots, if not in Engagement Range it makes a 6" Normal move but can’t charge.' },
+      ],
+      stratagems: [
+        { name: 'Dakkastorm', cp: '1', turn: 'Your turn', phase: 'Shooting', effect: 'The unit gains [Sustained Hits 1] ([Sustained Hits 2] within 9"). Can’t combine with Blitza Fire.' },
+        { name: 'Blitza Fire', cp: '1', turn: 'Your turn', phase: 'Shooting', effect: 'The unit gains [Lethal Hits], with Critical Hits on 5+ within 9". Can’t combine with Dakkastorm.' },
+        { name: 'Full Throttle!', cp: '1', turn: 'Your turn', phase: 'Charge', effect: '+1 to the unit’s melee Wound rolls until end of turn.' },
+        { name: 'More Gitz Over ’Ere!', cp: '1', turn: 'Opponent’s turn', phase: 'Movement', effect: 'React to a nearby enemy move with a 6" Normal move.' },
+        { name: 'Speediest Freeks', cp: '1', phase: 'Shooting / Fight', effect: 'The unit gains a 5+ invulnerable save (4+ for Vehicles of Toughness 8 or less).' },
+        { name: 'Squig Flingin’', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'An enemy unit within 9" takes a Battle-shock test with -1.' },
+      ],
+    },
+    'Speedwaaagh!': {
+      rule: {
+        name: 'Turbo Boostas',
+        effect: 'Speed Freeks/Trukk units can "turbo" when they Advance: move 24" in a straight line and their ranged weapons gain [Assault], but they can’t pivot or charge that turn.',
+      },
+      enhancements: [
+        { name: 'Kustom Shokk Box', pts: '10', effect: 'A unit using turbo can move straight through terrain.' },
+        { name: 'Dakkamek', pts: '25', effect: 'The bearer can give a chosen Vehicle unit [Rapid Fire 1] until your next Command phase.' },
+        { name: 'Supa-burny Fuel', pts: '15', effect: 'The bearer’s killa jet-burna fires 3D6 attacks; the killa jet-cutta makes 3 attacks.' },
+        { name: 'Master Meknologist', pts: '20', effect: '+1 to the Ballistic Skill of the bearer’s ranged weapons.' },
+      ],
+      stratagems: [
+        { name: 'On Da Move', cp: '1', turn: 'Your turn', phase: 'Movement', effect: 'The unit can shoot and charge after Falling Back or Advancing (unless it used turbo).' },
+        { name: 'Evasive Manoova', cp: '1', turn: 'Opponent’s turn', phase: 'Fight', effect: 'Remove the unit from the table into Strategic Reserves.' },
+        { name: 'Dust Trails', cp: '1', turn: 'Opponent’s turn', phase: 'Shooting', effect: 'The unit gains Benefit of Cover.' },
+        { name: 'Ded Killy Construction', cp: '1', turn: 'Your turn', phase: 'Fight', effect: 'The unit’s melee weapons gain [Lance], and +1 Damage if it charged this turn.' },
+        { name: 'Mobile Dakkastorm', cp: '1', turn: 'Your turn', phase: 'Shooting', effect: '+2 Strength to the Speed Freeks/Trukk unit’s ranged attacks this phase.' },
+        { name: 'Speshul Ammo', cp: '1', turn: 'Your turn', phase: 'Shooting', effect: 'The unit’s ranged weapons gain [Anti-Monster 4+] and [Anti-Vehicle 4+].' },
+      ],
+    },
     'Taktikal Brigade': {
       partial: true,
       rule: {
